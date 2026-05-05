@@ -1,24 +1,54 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack } from "expo-router";
+import { MD3LightTheme, PaperProvider } from "react-native-paper";
+import TopClientesAppbar from "./components/TopDropDownMenu";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
+const tema = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: "#b2c3d8",
+    secondary: "#021123",
+    background: "#e2e6eb",
+    surface: "#7babe7",
+  },
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <PaperProvider theme={tema}>
+      <Stack
+        screenOptions={{
+          headerShown: true,
+          header: ({ options }) => (
+            <TopClientesAppbar title={options.title} />
+          ),
+        }}
+      >
+
+        {/* 📌 AQUI ficam as rotas */}
+        <Stack.Screen name="index" options={{ title: "DASHBOARD" }} />
+
+        <Stack.Screen
+          name="views/ContatoListView"
+          options={{ title: "CLIENTES" }}
+        />
+
+        <Stack.Screen
+          name="views/ContatoFormView"
+          options={{ title: "NOVO CLIENTE" }}
+        />
+
+        <Stack.Screen
+          name="views/AgendamentoListView"
+          options={{ title: "AGENDAMENTOS" }}
+        />
+
+        <Stack.Screen
+          name="views/AgendamentoFormView"
+          options={{ title: "NOVO AGENDAMENTO" }}
+        />
+
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </PaperProvider>
   );
 }
