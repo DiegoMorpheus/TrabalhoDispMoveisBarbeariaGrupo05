@@ -26,7 +26,7 @@ export default function RootLayout() {
       >
 
         {/* 📌 AQUI ficam as rotas */}
-        <Stack.Screen name="index" options={{ title: "DASHBOARD" }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
 
         <Stack.Screen
           name="views/ContatoListView"
