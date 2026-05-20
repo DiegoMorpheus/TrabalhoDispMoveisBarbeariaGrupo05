@@ -1,80 +1,69 @@
-import { View, Text, StyleSheet } from "react-native";
-import { Avatar } from "react-native-paper";
+// app/components/TopDropDownMenu.jsx
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { usePathname } from "expo-router";
-import { colors } from "../services/colors/colors";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const RED  = "#8B1A1A";
+const WHITE = "#FFFFFF";
+const PINK  = "#F5C4C4";
 
 export default function TopClientesAppbar() {
-  const [usuario, setUsuario] = useState(null);
+  const [sessao, setSessao] = useState(null);
   const pathname = usePathname();
 
   useEffect(() => {
-    const carregar = async () => {
-      const data = await AsyncStorage.getItem("usuarioLogado");
-      if (data) setUsuario(JSON.parse(data));
+    const load = async () => {
+      const d = await AsyncStorage.getItem("sessao_barbearia");
+      if (d) setSessao(JSON.parse(d));
     };
-    carregar();
+    load();
   }, []);
 
   const getTitle = () => {
-    if (pathname.includes("AgendamentoListView")) return "AGENDAMENTOS";
-    if (pathname.includes("AgendamentoFormView")) return "NOVO AGENDAMENTO";
-    if (pathname.includes("ContatoListView")) return "CLIENTES";
-    if (pathname.includes("ContatoFormView")) return "NOVO CLIENTE";
-    return "DASHBOARD";
+    if (pathname.includes("AgendamentoListView"))     return "Agendamentos";
+    if (pathname.includes("AgendamentoFormView"))     return "Agendar";
+    if (pathname.includes("ContatoListView"))         return "Clientes";
+    if (pathname.includes("ContatoFormView"))         return "Cadastro";
+    if (pathname.includes("ProfissionalDetalheView")) return "Profissional";
+    if (pathname.includes("HabilidadesView"))         return "Habilidades";
+    return "";
   };
 
+  const inicial = sessao?.initials || sessao?.id?.charAt(0) || "U";
+
   return (
-    <View style={styles.header}>
+    <View style={s.header}>
+      <TouchableOpacity onPress={() => router.back()} hitSlop={14} activeOpacity={0.6}>
+        <Text style={s.arrow}>←</Text>
+      </TouchableOpacity>
 
-      <View style={styles.left}>
-        <Avatar.Text
-          size={32}
-          label={usuario?.nome?.charAt(0)?.toUpperCase() || "U"}
-          style={{ backgroundColor: colors.surface }}
-        />
+      <Text style={s.title}>{getTitle()}</Text>
+
+      <View style={s.avatarCircle}>
+        {sessao?.initials
+          ? <Text style={s.avatarTexto}>{sessao.initials}</Text>
+          : <MaterialCommunityIcons name="account" size={24} color={PINK} />
+        }
       </View>
-
-      <View style={styles.center}>
-        <Text style={styles.title}>{getTitle()}</Text>
-      </View>
-
-      <View style={styles.right} />
-
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   header: {
-    height: 60,
+    height: 62,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
+    justifyContent: "space-between",
+    backgroundColor: WHITE,
+    paddingHorizontal: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0E8E8",
   },
-
-  left: {
-    width: 60,
-    justifyContent: "center",
-    alignItems: "flex-start",
-  },
-
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  right: {
-    width: 60,
-  },
-
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.background,
-    letterSpacing: 1,
-  },
+  arrow: { fontSize: 26, color: RED, fontWeight: "700" },
+  title: { fontSize: 16, fontWeight: "700", fontStyle: "italic", color: RED, flex: 1, textAlign: "center" },
+  avatarCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: RED, alignItems: "center", justifyContent: "center" },
+  avatarTexto:  { color: WHITE, fontSize: 13, fontWeight: "900" },
 });
