@@ -6,7 +6,7 @@ function normalizeId(raw) {
   if (t === 'string' || t === 'number' || t === 'bigint') return String(raw);
 
   if (t === 'object') {
-    // casos comuns vindos de API/DB
+    
     if ('$oid' in raw) return String(raw.$oid);
     if ('value' in raw) return String(raw.value);
     if ('id' in raw) return String(raw.id);
@@ -42,12 +42,12 @@ export default class ContatoEntity {
     this.sexo = sexo ?? '';
   }
 
-  // opcional: chave pronta para listas
+  
   get key() {
     return String(this.id);
   }
 
-  // opcional: fábrica a partir do JSON da API
+  
   static transforme(d) {
     return new ContatoEntity(
       d?.id ?? d?._id ?? d?.id?.$oid ?? d?.id?.value,
