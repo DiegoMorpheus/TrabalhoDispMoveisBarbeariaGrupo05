@@ -60,7 +60,7 @@ export default function ContatoListView() {
   );
 }
 
-/* 🔥 ESTILOS (FALTAVA ISSO) */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
