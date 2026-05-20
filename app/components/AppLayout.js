@@ -7,15 +7,15 @@ export default function AppLayout({ children, title }) {
   return (
     <View style={styles.container}>
 
-      {/* 🔝 TOP BAR (único lugar correto) */}
+      {}
       <TopClientesAppbar title={title} />
 
-      {/* 📄 CONTEÚDO */}
+      {}
       <View style={styles.content}>
         {children}
       </View>
 
-      {/* 🔥 BOTTOM NAV */}
+      {}
       <BottomNav />
 
     </View>
