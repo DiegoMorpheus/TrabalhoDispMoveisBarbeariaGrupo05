@@ -7,7 +7,7 @@ let contatos = [];
 
 export default class ContatoService {
 
-  // ✅ contatos padrão
+  // contatos padrão
   static getDefaultContatos() {
     return [
       new ContatoEntity("1", "Maluco", "maluco@email.com", "31 98888-0001", true, "Trabalho", "M"),
@@ -18,7 +18,7 @@ export default class ContatoService {
     ];
   }
 
-  // ✅ NOVO: gerar próximo ID automático
+  // gerar próximo ID automático
   static async getNextId() {
     const lista = await this.findAll();
 
@@ -33,7 +33,7 @@ export default class ContatoService {
     return String(maiorId + 1);
   }
 
-  // ✅ buscar todos
+  // buscar todos
   static async findAll() {
     const json = await AsyncStorage.getItem(STORAGE_KEY);
 
@@ -50,17 +50,17 @@ export default class ContatoService {
     return [...contatos];
   }
 
-  // ✅ buscar por ID
+  // buscar por ID
   static async findById(id) {
     const lista = await this.findAll();
     return lista.find(item => item.id === String(id)) ?? null;
   }
 
-  // ✅ salvar contato
+  // salvar contato
   static async save(contato) {
     const lista = await this.findAll();
 
-    // ✅ se não tiver ID, gera automaticamente
+    // se não tiver ID, gera automaticamente
     if (!contato.id) {
       contato.id = await this.getNextId();
     }
@@ -80,12 +80,12 @@ export default class ContatoService {
     return contato;
   }
 
-  // ✅ salvar lista
+  // salvar lista
   static async saveAll(lista) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
   }
 
-  // ✅ limpar + restaurar
+  // limpar + restaurar
   static async clear() {
     await AsyncStorage.removeItem(STORAGE_KEY);
 
