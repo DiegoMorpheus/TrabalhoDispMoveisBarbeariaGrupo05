@@ -46,6 +46,7 @@ Abra no VsCode e Android Studio e execute o projeto.
 - Eduarda Silva Santos Nunis
 - Victor Andrey Marques da Silva
 - Phillip Vinicius da Silva
+- Lucas De Jesus Alves
 
 ---
 
