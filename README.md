@@ -43,6 +43,9 @@ Abra no VsCode e Android Studio e execute o projeto.
 ## 👨‍💻 Integrantes
 
 - Diego Jardim de Oliveira
+- Eduarda Silva Santos Nunis
+- Victor Andrey Marques da Silva
+- Phillip Vinicius da Silva
 
 ---
 
