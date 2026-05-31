@@ -1,50 +1,51 @@
-# Welcome to your Expo app 👋
+# 💈 Sistema de Barbearia - Grupo 05
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Projeto desenvolvido para a disciplina de **Dispositivos Móveis**, com o objetivo de criar um sistema de gerenciamento para uma barbearia.
 
-## Get started
+## 📱 Sobre o Projeto
 
-1. Install dependencies
+Aplicativo para gestão de barbearia com funcionalidades como:
 
-   ```bash
-   npm install
-   ```
+- Cadastro de clientes 👤
+- Agendamento de horários 📅
+- Controle de serviços 💇‍♂️
+- Organização de atendimentos 🧾
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 🚀 Tecnologias Utilizadas
 
-In the output, you'll find options to open the app in a
+- Java / Kotlin
+- Android Studio
+- SQLite / Firebase
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## ⚙️ Funcionalidades
 
-## Get a fresh project
+- Cadastro de usuários
+- Login
+- Agendamento de serviços
+- Histórico de atendimentos
 
-When you're ready, run:
+---
+
+## 📦 Como Executar
 
 ```bash
-npm run reset-project
+git clone https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Abra no VsCode e Android Studio e execute o projeto.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## 👨‍💻 Integrantes
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Diego Jardim de Oliveira
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 📄 Licença
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Uso acadêmico.
