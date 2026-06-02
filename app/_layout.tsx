@@ -1,7 +1,9 @@
-// app/_layout.tsx
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { MD3LightTheme, PaperProvider } from "react-native-paper";
 import TopClientesAppbar from "./components/TopDropDownMenu";
+import { initDB } from "./services/database/database.js";
+import ClienteService from "./services/ClienteService";
 
 const tema = {
   ...MD3LightTheme,
@@ -15,6 +17,13 @@ const tema = {
 };
 
 export default function RootLayout() {
+
+  // ✅ Inicializa o banco corretamente
+  useEffect(() => {
+    initDB();
+    //ClienteService.seed(); // popula clientes automaticamente
+  }, []);
+
   return (
     <PaperProvider theme={tema}>
       <Stack
@@ -30,14 +39,13 @@ export default function RootLayout() {
         <Stack.Screen name="views/LoginView"               options={{ headerShown: false }} />
         <Stack.Screen name="views/HomeProfissionalView"    options={{ headerShown: false }} />
 
-        {/* ── Com header padrão (TopClientesAppbar) ── */}
+        {/* ── Com header padrão ── */}
         <Stack.Screen name="views/ContatoListView"         options={{ title: "CLIENTES" }} />
         <Stack.Screen name="views/ContatoFormView"         options={{ title: "CADASTRO" }} />
         <Stack.Screen name="views/AgendamentoListView"     options={{ title: "AGENDAMENTOS" }} />
         <Stack.Screen name="views/AgendamentoFormView"     options={{ title: "AGENDAR" }} />
         <Stack.Screen name="views/ProfissionalDetalheView" options={{ title: "PROFISSIONAL" }} />
         <Stack.Screen name="views/HabilidadesView"         options={{ title: "HABILIDADES" }} />
-
       </Stack>
     </PaperProvider>
   );

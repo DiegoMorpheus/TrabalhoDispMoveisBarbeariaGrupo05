@@ -13,30 +13,32 @@ import {
   View,
 } from "react-native";
 
-const RED   = "#8B1A1A";
-const CREAM = "#F5EDE2";
-const WHITE = "#FFFFFF";
-const DARK  = "#1C0A0A";
-const GREY  = "#9A7A7A";
-const GREEN = "#2E7D32";
-const BG    = "#FAFAF8";
+// ── Paleta azul ───────────────────────────────────────────────────────────────
+const BLUE    = "#1A4A8A";
+const BLUE2   = "#2563B0";
+const BLUE_LT = "#EBF2FC";   // fundo dos ícones e chips
+const WHITE   = "#FFFFFF";
+const DARK    = "#0A1628";
+const GREY    = "#7A8FA6";
+const GREEN   = "#2E7D32";
+const BG      = "#F0F5FA";
 
 const CHAVE_SESSAO = "sessao_barbearia";
 
 const TODAS_HABILIDADES = [
-  { id: "barba",       label: "Corte de Barba",         icon: "face-man" },
-  { id: "cabelo",      label: "Corte de Cabelo",        icon: "content-cut" },
-  { id: "massagem",    label: "Massagem Facial",         icon: "hand-heart" },
-  { id: "sobrancelha", label: "Desenho de Sobrancelha", icon: "eye" },
+  { id: "barba",       label: "Corte de Barba",         icon: "face-man"     },
+  { id: "cabelo",      label: "Corte de Cabelo",        icon: "content-cut"  },
+  { id: "massagem",    label: "Massagem Facial",         icon: "hand-heart"   },
+  { id: "sobrancelha", label: "Desenho de Sobrancelha", icon: "eye"          },
   { id: "capilar",     label: "Tratamento Capilar",     icon: "bottle-tonic" },
 ];
 
 export default function HabilidadesView() {
-  const [sessao,      setSessao]      = useState(null);
+  const [sessao,       setSessao]       = useState(null);
   const [selecionadas, setSelecionadas] = useState([]);
-  const [salvando,    setSalvando]    = useState(false);
-  const [salvo,       setSalvo]       = useState(false);
-  const [erro,        setErro]        = useState("");
+  const [salvando,     setSalvando]     = useState(false);
+  const [salvo,        setSalvo]        = useState(false);
+  const [erro,         setErro]         = useState("");
 
   useEffect(() => {
     const carregar = async () => {
@@ -45,7 +47,6 @@ export default function HabilidadesView() {
       const s = JSON.parse(raw);
       setSessao(s);
 
-      // Carrega habilidades já salvas deste profissional (pelo nome)
       const chaveNome = `habilidades_perfil_${s.nome}`;
       const hab = await AsyncStorage.getItem(chaveNome);
       if (hab) setSelecionadas(JSON.parse(hab));
@@ -70,10 +71,8 @@ export default function HabilidadesView() {
       setErro("Selecione ao menos uma habilidade.");
       return;
     }
-
     setSalvando(true);
     try {
-      // Salva indexado pelo nome (visível para usuários) E pelo ID (visível na home do profissional)
       const chaveNome = `habilidades_perfil_${sessao.nome}`;
       const chaveId   = `habilidades_${sessao.id}`;
       await AsyncStorage.setItem(chaveNome, JSON.stringify(selecionadas));
@@ -82,12 +81,13 @@ export default function HabilidadesView() {
       setSalvo(true);
       setSalvando(false);
       setTimeout(() => router.replace("/views/HomeProfissionalView"), 1400);
-    } catch (err) {
+    } catch {
       setSalvando(false);
       setErro("Erro ao salvar. Tente novamente.");
     }
   };
 
+  // ── Tela de sucesso ───────────────────────────────────────────────────────
   if (salvo) {
     return (
       <View style={s.root}>
@@ -107,9 +107,8 @@ export default function HabilidadesView() {
       <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* ── Card principal ── */}
         <View style={s.card}>
+          {/* Barra azul no topo do card */}
           <View style={s.cardBarra} />
           <View style={s.cardBody}>
 
@@ -124,7 +123,7 @@ export default function HabilidadesView() {
             {/* Erro inline */}
             {erro ? (
               <View style={s.erroBox}>
-                <MaterialCommunityIcons name="alert-circle-outline" size={15} color={RED} />
+                <MaterialCommunityIcons name="alert-circle-outline" size={15} color={BLUE} />
                 <Text style={s.erroTexto}> {erro}</Text>
               </View>
             ) : null}
@@ -140,7 +139,11 @@ export default function HabilidadesView() {
                   activeOpacity={0.8}
                 >
                   <View style={[s.habIcone, sel && s.habIconeSel]}>
-                    <MaterialCommunityIcons name={h.icon} size={24} color={sel ? WHITE : RED} />
+                    <MaterialCommunityIcons
+                      name={h.icon}
+                      size={24}
+                      color={sel ? WHITE : BLUE}
+                    />
                   </View>
                   <Text style={[s.habLabel, sel && s.habLabelSel]}>{h.label}</Text>
                   <MaterialCommunityIcons
@@ -164,7 +167,12 @@ export default function HabilidadesView() {
               ) : (
                 <View style={s.botaoConteudo}>
                   <Text style={s.botaoTexto}>SALVAR HABILIDADES</Text>
-                  <MaterialCommunityIcons name="content-save" size={20} color={WHITE} style={{ marginLeft: 10 }} />
+                  <MaterialCommunityIcons
+                    name="content-save"
+                    size={20}
+                    color={WHITE}
+                    style={{ marginLeft: 10 }}
+                  />
                 </View>
               )}
             </TouchableOpacity>
@@ -181,36 +189,37 @@ const s = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 },
 
   // Sucesso
-  sucessoTela:  { flex: 1, justifyContent: "center", alignItems: "center", gap: 14, padding: 32 },
-  sucessoIcone: { width: 90, height: 90, borderRadius: 45, backgroundColor: GREEN, justifyContent: "center", alignItems: "center" },
-  sucessoTitulo:{ fontSize: 24, fontWeight: "900", color: DARK },
-  sucessoSub:   { fontSize: 13, color: GREY },
+  sucessoTela:   { flex: 1, justifyContent: "center", alignItems: "center", gap: 14, padding: 32 },
+  sucessoIcone:  { width: 90, height: 90, borderRadius: 45, backgroundColor: GREEN, justifyContent: "center", alignItems: "center" },
+  sucessoTitulo: { fontSize: 24, fontWeight: "900", color: DARK },
+  sucessoSub:    { fontSize: 13, color: GREY },
 
   // Card
-  card:    { backgroundColor: WHITE, borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  cardBarra: { height: 6, backgroundColor: RED },
+  card:      { backgroundColor: WHITE, borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  cardBarra: { height: 6, backgroundColor: BLUE },
   cardBody:  { padding: 24, gap: 12 },
 
   titulo:    { fontSize: 20, fontWeight: "900", color: DARK, textAlign: "center", letterSpacing: 1.5 },
   subtitulo: { fontSize: 13, color: GREY, textAlign: "center", marginTop: -4 },
 
-  contadorRow: { alignItems: "flex-end" },
-  contadorTexto: { fontSize: 12, fontWeight: "700", color: RED },
+  contadorRow:   { alignItems: "flex-end" },
+  contadorTexto: { fontSize: 12, fontWeight: "700", color: BLUE },
 
-  erroBox:  { flexDirection: "row", alignItems: "center", backgroundColor: "#FFF0F0", borderWidth: 1, borderColor: "#FFCCCC", borderRadius: 8, padding: 10 },
-  erroTexto:{ fontSize: 13, color: RED, fontWeight: "600", flex: 1 },
+  // Erro
+  erroBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#EBF2FC", borderWidth: 1, borderColor: "#A8C4E8", borderRadius: 8, padding: 10 },
+  erroTexto: { fontSize: 13, color: BLUE, fontWeight: "600", flex: 1 },
 
   // Itens de habilidade
-  habItem:    { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 12, backgroundColor: "#F9F9F9", borderWidth: 1.5, borderColor: "#EEE" },
-  habItemSel: { backgroundColor: RED, borderColor: RED },
-  habIcone:   { width: 44, height: 44, borderRadius: 22, backgroundColor: CREAM, alignItems: "center", justifyContent: "center" },
+  habItem:    { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 12, backgroundColor: "#F8FAFE", borderWidth: 1.5, borderColor: "#DDE8F5" },
+  habItemSel: { backgroundColor: BLUE, borderColor: BLUE },
+  habIcone:   { width: 44, height: 44, borderRadius: 22, backgroundColor: BLUE_LT, alignItems: "center", justifyContent: "center" },
   habIconeSel:{ backgroundColor: "rgba(255,255,255,0.2)" },
   habLabel:   { flex: 1, fontSize: 15, fontWeight: "700", color: DARK },
   habLabelSel:{ color: WHITE },
 
   // Botão
-  botao:         { backgroundColor: RED, borderRadius: 8, height: 52, justifyContent: "center", alignItems: "center", marginTop: 8, shadowColor: RED, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 5 },
+  botao:          { backgroundColor: BLUE, borderRadius: 8, height: 52, justifyContent: "center", alignItems: "center", marginTop: 8, shadowColor: BLUE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 5 },
   botaoDesativado:{ backgroundColor: GREY, shadowOpacity: 0, elevation: 0 },
-  botaoConteudo: { flexDirection: "row", alignItems: "center" },
-  botaoTexto:    { color: WHITE, fontSize: 15, fontWeight: "900", letterSpacing: 1.2 },
+  botaoConteudo:  { flexDirection: "row", alignItems: "center" },
+  botaoTexto:     { color: WHITE, fontSize: 15, fontWeight: "900", letterSpacing: 1.2 },
 });

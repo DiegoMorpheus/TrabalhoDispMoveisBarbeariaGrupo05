@@ -1,6 +1,6 @@
-// app/views/HomeView.js 
+// app/views/HomeView.js (ARQUIVO CORRIGIDO E BLINDADO)
 import React from "react";
-
+// CORREÇÃO: Adicionado 'StyleSheet' nas importações do 'react-native'
 import { StyleSheet, View, Text, SafeAreaView } from "react-native";
 
 const HomeView = () => {
@@ -14,9 +14,9 @@ const HomeView = () => {
   );
 };
 
-
+// --- ESTILIZAÇÃO (CORRIGIDO: Removido StyleSheet.StyleSheet) ---
 const styles = StyleSheet.create({
-  
+  // CORRETO: Acessando create diretamente
   container: { flex: 1, backgroundColor: "#FFF" },
   content: {
     flex: 1,

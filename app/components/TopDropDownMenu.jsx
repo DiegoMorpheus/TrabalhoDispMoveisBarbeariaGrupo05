@@ -4,25 +4,39 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AvatarIcon from "./AvatarIcon";
 
 const RED  = "#8B1A1A";
+const BLUE = "#1A4A8A";
 const WHITE = "#FFFFFF";
-const PINK  = "#F5C4C4";
+
+const chavePerfil = (id) => `perfil_${id}`;
 
 export default function TopClientesAppbar() {
   const [sessao, setSessao] = useState(null);
+  const [genero, setGenero] = useState(null);
   const pathname = usePathname();
 
   useEffect(() => {
     const load = async () => {
-      const d = await AsyncStorage.getItem("sessao_barbearia");
-      if (d) setSessao(JSON.parse(d));
+      const raw = await AsyncStorage.getItem("sessao_barbearia");
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      setSessao(s);
+
+      if (s?.id) {
+        const rawPerfil = await AsyncStorage.getItem(chavePerfil(s.id));
+        if (rawPerfil) setGenero(JSON.parse(rawPerfil).genero ?? null);
+      }
     };
     load();
   }, []);
 
+  const isProfissional = sessao?.tipo === "profissional";
+  const ACCENT = isProfissional ? BLUE : RED;
+
   const getTitle = () => {
-    if (pathname.includes("AgendamentoListView"))     return "Agendamentos";
+    if (pathname.includes("AgendamentoListView"))     return isProfissional ? "Meus Agendamentos" : "Minha Agenda";
     if (pathname.includes("AgendamentoFormView"))     return "Agendar";
     if (pathname.includes("ContatoListView"))         return "Clientes";
     if (pathname.includes("ContatoFormView"))         return "Cadastro";
@@ -31,21 +45,16 @@ export default function TopClientesAppbar() {
     return "";
   };
 
-  const inicial = sessao?.initials || sessao?.id?.charAt(0) || "U";
-
   return (
-    <View style={s.header}>
+    <View style={[s.header, { borderBottomColor: isProfissional ? "#D0E4F7" : "#F0E8E8" }]}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={14} activeOpacity={0.6}>
-        <Text style={s.arrow}>←</Text>
+        <Text style={[s.arrow, { color: ACCENT }]}>←</Text>
       </TouchableOpacity>
 
-      <Text style={s.title}>{getTitle()}</Text>
+      <Text style={[s.title, { color: ACCENT }]}>{getTitle()}</Text>
 
-      <View style={s.avatarCircle}>
-        {sessao?.initials
-          ? <Text style={s.avatarTexto}>{sessao.initials}</Text>
-          : <MaterialCommunityIcons name="account" size={24} color={PINK} />
-        }
+      <View style={[s.avatarWrap, { borderColor: ACCENT }]}>
+        <AvatarIcon genero={genero} size={42} bgColor={ACCENT} iconColor={WHITE} />
       </View>
     </View>
   );
@@ -60,10 +69,8 @@ const s = StyleSheet.create({
     backgroundColor: WHITE,
     paddingHorizontal: 22,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0E8E8",
   },
-  arrow: { fontSize: 26, color: RED, fontWeight: "700" },
-  title: { fontSize: 16, fontWeight: "700", fontStyle: "italic", color: RED, flex: 1, textAlign: "center" },
-  avatarCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: RED, alignItems: "center", justifyContent: "center" },
-  avatarTexto:  { color: WHITE, fontSize: 13, fontWeight: "900" },
+  arrow:      { fontSize: 26, fontWeight: "700" },
+  title:      { fontSize: 16, fontWeight: "700", fontStyle: "italic", flex: 1, textAlign: "center" },
+  avatarWrap: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", borderWidth: 2 },
 });

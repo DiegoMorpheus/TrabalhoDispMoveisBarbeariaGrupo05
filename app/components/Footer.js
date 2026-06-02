@@ -2,12 +2,12 @@ import { useNavigation } from "@react-navigation/native";
 import { Button, StyleSheet, Text, View } from "react-native";
 
 const Footer = () => {
-  
+  // Tenta obter o objeto de navegação
   const navigation = useNavigation();
 
-  
+  // Função simples de teste
   const navegarParaHome = () => {
-    
+    // Verificação de segurança minimalista
     if (navigation && navigation.navigate) {
       console.log("Tentando navegar para Home...");
       navigation.navigate("Home");
@@ -15,7 +15,7 @@ const Footer = () => {
       console.error(
         "ERRO CRÍTICO NO TESTE: Objeto 'navigation' não existe no Footer.",
       );
-      
+      // Se quebrar aqui com o mesmo erro, o problema é estrutural no projeto.
     }
   };
 

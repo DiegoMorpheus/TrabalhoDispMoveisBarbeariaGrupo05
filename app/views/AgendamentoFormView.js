@@ -137,7 +137,7 @@ function SeletorProfissional({ profSelecionado, onSelecionar }) {
 
 // ── Tela principal ────────────────────────────────────────────────────────────
 export default function AgendamentoFormView() {
-  
+  // Parâmetros opcionais vindos da tela de detalhe do profissional
   const params = useLocalSearchParams();
 
   const [clienteId,       setClienteId]      = useState("");

@@ -58,7 +58,7 @@ export default class AgendamentoEntity {
     );
   }
 
-  // lógica útil
+  // lógica útil (opcional)
   isConcluido() {
     return this.status === 'concluido';
   }

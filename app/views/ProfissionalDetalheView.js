@@ -19,7 +19,8 @@ const DARK  = "#1C0A0A";
 const GREY  = "#9A7A7A";
 const BG    = "#FAFAF8";
 
-
+// Chave onde cada profissional salva suas habilidades
+// O profissional salva como: habilidades_perfil_Diego
 function chaveHabilidades(nome) {
   return `habilidades_perfil_${nome}`;
 }
