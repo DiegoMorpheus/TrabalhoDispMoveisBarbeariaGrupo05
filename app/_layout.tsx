@@ -17,7 +17,6 @@ const tema = {
 };
 
 export default function RootLayout() {
-
   // ✅ Inicializa o banco corretamente
   useEffect(() => {
     initDB();
@@ -29,23 +28,42 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: true,
-          header: ({ options }) => (
-            <TopClientesAppbar title={options.title} />
-          ),
+          header: () => <TopClientesAppbar />,
         }}
       >
         {/* ── Sem header próprio ── */}
-        <Stack.Screen name="index"                         options={{ headerShown: false }} />
-        <Stack.Screen name="views/LoginView"               options={{ headerShown: false }} />
-        <Stack.Screen name="views/HomeProfissionalView"    options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="views/LoginView" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="views/HomeProfissionalView"
+          options={{ headerShown: false }}
+        />
 
         {/* ── Com header padrão ── */}
-        <Stack.Screen name="views/ContatoListView"         options={{ title: "CLIENTES" }} />
-        <Stack.Screen name="views/ContatoFormView"         options={{ title: "CADASTRO" }} />
-        <Stack.Screen name="views/AgendamentoListView"     options={{ title: "AGENDAMENTOS" }} />
-        <Stack.Screen name="views/AgendamentoFormView"     options={{ title: "AGENDAR" }} />
-        <Stack.Screen name="views/ProfissionalDetalheView" options={{ title: "PROFISSIONAL" }} />
-        <Stack.Screen name="views/HabilidadesView"         options={{ title: "HABILIDADES" }} />
+        <Stack.Screen
+          name="views/ContatoListView"
+          options={{ title: "CLIENTES" }}
+        />
+        <Stack.Screen
+          name="views/ContatoFormView"
+          options={{ title: "CADASTRO" }}
+        />
+        <Stack.Screen
+          name="views/AgendamentoListView"
+          options={{ title: "AGENDAMENTOS" }}
+        />
+        <Stack.Screen
+          name="views/AgendamentoFormView"
+          options={{ title: "AGENDAR" }}
+        />
+        <Stack.Screen
+          name="views/ProfissionalDetalheView"
+          options={{ title: "PROFISSIONAL" }}
+        />
+        <Stack.Screen
+          name="views/HabilidadesView"
+          options={{ title: "HABILIDADES" }}
+        />
       </Stack>
     </PaperProvider>
   );

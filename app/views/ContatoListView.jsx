@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, View, Button } from "react-native";
+import { Button, FlatList, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
 
-import ContatoItem from "../components/ClienteItem";
+import ClienteItem from "../components/ClienteItem";
 import ContatoService from "../services/ContatoService";
 
 export default function ContatoListView() {
@@ -34,8 +34,9 @@ export default function ContatoListView() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <View style={styles.botao}>
         <Button title="🔄 Restaurar contatos" onPress={handleReset} />
       </View>
@@ -45,7 +46,7 @@ export default function ContatoListView() {
           data={contatos}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (
-            <ContatoItem
+            <ClienteItem
               item={item}
               index={index}
               onPress={() => abrirFormulario(item)}
@@ -55,7 +56,6 @@ export default function ContatoListView() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-
     </View>
   );
 }
