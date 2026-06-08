@@ -15,7 +15,6 @@ import {
 } from "react-native";
 
 const RED = "#8B1A1A";
-const CREAM = "#F5EDE2";
 const WHITE = "#FFFFFF";
 const DARK = "#1C0A0A";
 const GREY = "#9A7A7A";
@@ -23,35 +22,187 @@ const GREEN = "#2E7D32";
 const YELLOW = "#B8860B";
 const BG = "#FAFAF8";
 
-// ── Chaves de storage ─────────────────────────────────────────────────────────
 export const CHAVE_SESSAO = "sessao_barbearia";
-export const CHAVE_CADASTROS = "cadastros_app"; // mapa id → {tipo, nome, initials}
+export const CHAVE_CADASTROS = "cadastros_app";
 
-// ── Profissionais disponíveis ─────────────────────────────────────────────────
-export const PROFISSIONAIS = [
-  { nome: "Diego", initials: "DG" },
-  { nome: "Eduarda", initials: "ED" },
-  { nome: "Guilherme", initials: "GH" },
-];
-
-function gerarId(prefixo) {
-  const n = Math.floor(Math.random() * 999) + 1;
-  return `${prefixo}${String(n).padStart(3, "0")}`;
+function validarFormato(valor) {
+  if (!valor || valor.length !== 6) return false;
+  const letras = valor.replace(/[^a-zA-Z]/g, "").length;
+  const numeros = valor.replace(/[^0-9]/g, "").length;
+  return letras === 3 && numeros === 3;
 }
 
-// ── Etapas: "login" | "novoTipo" | "novoProfissional" | "novoSucesso" ─────────
+async function idJaExiste(id) {
+  const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
+  const cadastros = raw ? JSON.parse(raw) : {};
+  return !!cadastros[id.toUpperCase()];
+}
+
+async function profissionalJaCadastrado(nome) {
+  const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
+  const cadastros = raw ? JSON.parse(raw) : {};
+  return Object.values(cadastros).some(
+    (c) =>
+      c.tipo === "profissional" &&
+      c.nome?.toLowerCase() === nome.toLowerCase() &&
+      c.ativa !== false,
+  );
+}
+
+// ✅ CORREÇÃO: componente extraído FORA do LoginView
+// Definir dentro causava re-montagem a cada tecla digitada (perda de foco)
+function CamposIdSenha({
+  novoId,
+  setNovoId,
+  novaSenha,
+  setNovaSenha,
+  mostrarSenha,
+  setMostrarSenha,
+  erro,
+  loading,
+  onConfirmar,
+  onVoltar,
+  labelExtra,
+}) {
+  return (
+    <>
+      <View style={s.regraBox}>
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={16}
+          color={RED}
+        />
+        <Text style={s.regraTexto}>
+          {"  "}ID e senha:{" "}
+          <Text style={{ fontWeight: "900" }}>6 caracteres</Text> (3 letras + 3
+          números){"\n"}
+          {"  "}Exemplo:{" "}
+          <Text style={{ fontWeight: "700" }}>ABC123 · A1B2C3 · 1A2B3C</Text>
+        </Text>
+      </View>
+
+      {erro ? (
+        <View style={s.erroBox}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={15}
+            color={RED}
+          />
+          <Text style={s.erroTexto}> {erro}</Text>
+        </View>
+      ) : null}
+
+      {labelExtra}
+
+      <Text style={s.label}>
+        NOME DE ID <Text style={s.labelHint}>(fixo após criação)</Text>
+      </Text>
+      <TextInput
+        style={s.inputId}
+        placeholder="Ex: ABC123"
+        placeholderTextColor={GREY}
+        value={novoId}
+        onChangeText={(t) => setNovoId(t.toUpperCase())}
+        autoCapitalize="characters"
+        maxLength={6}
+        returnKeyType="next"
+      />
+
+      <Text style={s.label}>
+        SENHA <Text style={s.labelHint}>(pode ser alterada depois)</Text>
+      </Text>
+      <View style={s.senhaWrap}>
+        <TextInput
+          style={s.inputSenha}
+          placeholder="Ex: XYZ456"
+          placeholderTextColor={GREY}
+          value={novaSenha}
+          onChangeText={(t) => setNovaSenha(t.toUpperCase())}
+          autoCapitalize="characters"
+          maxLength={6}
+          secureTextEntry={!mostrarSenha}
+          returnKeyType="done"
+        />
+        <TouchableOpacity
+          onPress={() => setMostrarSenha((v) => !v)}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
+            size={20}
+            color={GREY}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={[s.botao, loading && s.botaoDesativado]}
+        onPress={onConfirmar}
+        disabled={loading}
+        activeOpacity={0.85}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={WHITE} />
+        ) : (
+          <View style={s.botaoConteudo}>
+            <Text style={s.botaoTexto}>CRIAR CONTA</Text>
+            <MaterialCommunityIcons
+              name="check"
+              size={20}
+              color={WHITE}
+              style={{ marginLeft: 10 }}
+            />
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.voltarBtn}
+        onPress={onVoltar}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons name="arrow-left" size={16} color={RED} />
+        <Text style={s.voltarTexto}> Voltar</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function LoginView() {
   const [etapa, setEtapa] = useState("login");
   const [inputId, setInputId] = useState("");
+  const [inputSenha, setInputSenha] = useState("");
+  const [novoId, setNovoId] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  // ✅ NOVO: nome livre para profissional
+  const [nomeProf, setNomeProf] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
-  const [novoId, setNovoId] = useState(""); // ID gerado no cadastro
+  const [idConfirmado, setIdConfirmado] = useState("");
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
 
-  // ── Entrar com ID existente ──────────────────────────────────────────────
-  /*const entrar = async () => {
+  const resetRegistro = () => {
+    setErro("");
+    setNovoId("");
+    setNovaSenha("");
+    setNomeProf("");
+  };
+
+  // ── Entrar ─────────────────────────────────────────────────────────────
+  const entrar = async () => {
     setErro("");
     const id = inputId.trim().toUpperCase();
-    if (!id) { setErro("Digite seu ID para entrar."); return; }
+    const senha = inputSenha.trim().toUpperCase();
+    if (!id) {
+      setErro("Digite seu ID.");
+      return;
+    }
+    if (!senha) {
+      setErro("Digite sua senha.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -59,132 +210,139 @@ export default function LoginView() {
       const cadastros = raw ? JSON.parse(raw) : {};
 
       if (!cadastros[id]) {
-        setErro("ID não encontrado. Verifique ou crie uma conta.");
-        setLoading(false);
-        return;
-      }
-
-      const conta = cadastros[id];
-      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
-      setLoading(false);
-
-      if (conta.tipo === "profissional") {
-        router.replace("/views/HomeProfissionalView");
-      } else {
-        router.replace("/");
-      }
-    } catch {
-      setLoading(false);
-      setErro("Erro ao entrar. Tente novamente.");
-    }
-  };*/
-
-  const entrar = async () => {
-    setErro("");
-    const id = inputId.trim().toUpperCase();
-
-    if (!id) {
-      setErro("Digite seu ID para entrar.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      let cadastros = {};
-
-      const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
-      cadastros = raw ? JSON.parse(raw) : {};
-
-      if (!cadastros[id]) {
         setErro("ID não encontrado.");
         setLoading(false);
         return;
       }
-
       const conta = cadastros[id];
-
-      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
-
-      setLoading(false);
-
-      if (conta.tipo === "profissional") {
-        router.replace("/views/HomeProfissionalView");
-      } else {
-        router.replace("/");
+      if (conta.ativa === false) {
+        setErro("Conta desativada. Contate a barbearia.");
+        setLoading(false);
+        return;
       }
-    } catch (e) {
-      setLoading(false);
-      console.log("Erro login:", e);
-      setErro("Erro ao entrar.");
-    }
-  };
-
-  // ── Registrar como Usuário ───────────────────────────────────────────────
-  const registrarUsuario = async () => {
-    const id = gerarId("U");
-    const conta = { tipo: "usuario", id };
-    await _salvarConta(id, conta);
-    setNovoId(id);
-    setEtapa("novoSucesso");
-  };
-
-  // ── Registrar como Profissional ──────────────────────────────────────────
-  const registrarProfissional = async (prof) => {
-    const id = gerarId("P");
-    const conta = {
-      tipo: "profissional",
-      id,
-      nome: prof.nome,
-      initials: prof.initials,
-    };
-    await _salvarConta(id, conta);
-    setNovoId(id);
-    setEtapa("novoSucesso");
-  };
-
-  const _salvarConta = async (id, conta) => {
-    try {
-      let cadastros = {};
-
-      const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
-      cadastros = raw ? JSON.parse(raw) : {};
-
-      cadastros[id] = conta;
-
-      await AsyncStorage.setItem(CHAVE_CADASTROS, JSON.stringify(cadastros));
-
-      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
-    } catch (e) {
-      console.log("Erro ao salvar conta:", e);
-    }
-  };
-
-  const continuar = async () => {
-    try {
-      const raw = await AsyncStorage.getItem(CHAVE_SESSAO);
-
-      if (!raw) {
-        setErro("Sessão não encontrada.");
+      if (conta.senha !== senha) {
+        setErro("Senha incorreta.");
+        setLoading(false);
         return;
       }
 
-      const s = JSON.parse(raw);
-
-      if (s.tipo === "profissional") {
+      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
+      setLoading(false);
+      if (conta.tipo === "profissional")
         router.replace("/views/HomeProfissionalView");
-      } else {
-        router.replace("/");
-      }
-    } catch (e) {
-      console.log("Erro ao continuar:", e);
-      setErro("Erro ao acessar sessão.");
+      else router.replace("/");
+    } catch {
+      setLoading(false);
+      setErro("Erro ao entrar. Tente novamente.");
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // TELA: Login por ID
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Registrar usuário ──────────────────────────────────────────────────
+  const registrarUsuario = async () => {
+    setErro("");
+    const id = novoId.trim().toUpperCase();
+    const senha = novaSenha.trim().toUpperCase();
+
+    if (!validarFormato(id)) {
+      setErro("ID inválido: 6 caracteres, 3 letras e 3 números.");
+      return;
+    }
+    if (!validarFormato(senha)) {
+      setErro("Senha inválida: 6 caracteres, 3 letras e 3 números.");
+      return;
+    }
+    if (await idJaExiste(id)) {
+      setErro("Este ID já está em uso. Escolha outro.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const conta = { tipo: "usuario", id, ativa: true, senha };
+      const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
+      const cadastros = raw ? JSON.parse(raw) : {};
+      cadastros[id] = conta;
+      await AsyncStorage.setItem(CHAVE_CADASTROS, JSON.stringify(cadastros));
+      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
+      setIdConfirmado(id);
+      setLoading(false);
+      setEtapa("novoSucesso");
+    } catch {
+      setLoading(false);
+      setErro("Erro ao criar conta.");
+    }
+  };
+
+  // ── ✅ Registrar profissional (nome livre, sem lista fixa) ─────────────
+  const registrarProfissional = async () => {
+    setErro("");
+    const nome = nomeProf.trim();
+    const id = novoId.trim().toUpperCase();
+    const senha = novaSenha.trim().toUpperCase();
+
+    if (!nome) {
+      setErro("Informe seu nome.");
+      return;
+    }
+    if (!validarFormato(id)) {
+      setErro("ID inválido: 6 caracteres, 3 letras e 3 números.");
+      return;
+    }
+    if (!validarFormato(senha)) {
+      setErro("Senha inválida: 6 caracteres, 3 letras e 3 números.");
+      return;
+    }
+    if (await idJaExiste(id)) {
+      setErro("Este ID já está em uso. Escolha outro.");
+      return;
+    }
+    if (await profissionalJaCadastrado(nome)) {
+      setErro(`Já existe uma conta ativa para "${nome}".`);
+      return;
+    }
+
+    const initials = nome
+      .trim()
+      .split(" ")
+      .map((p) => p[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    setLoading(true);
+    try {
+      const conta = {
+        tipo: "profissional",
+        id,
+        nome,
+        initials,
+        ativa: true,
+        senha,
+      };
+      const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
+      const cadastros = raw ? JSON.parse(raw) : {};
+      cadastros[id] = conta;
+      await AsyncStorage.setItem(CHAVE_CADASTROS, JSON.stringify(cadastros));
+      await AsyncStorage.setItem(CHAVE_SESSAO, JSON.stringify(conta));
+      setIdConfirmado(id);
+      setLoading(false);
+      setEtapa("novoSucesso");
+    } catch {
+      setLoading(false);
+      setErro("Erro ao criar conta.");
+    }
+  };
+
+  const continuar = () => {
+    AsyncStorage.getItem(CHAVE_SESSAO).then((raw) => {
+      const s = JSON.parse(raw);
+      if (s.tipo === "profissional")
+        router.replace("/views/HomeProfissionalView");
+      else router.replace("/");
+    });
+  };
+
+  // ── TELA: Login ──────────────────────────────────────────────────────────
   if (etapa === "login") {
     return (
       <View style={s.root}>
@@ -193,7 +351,6 @@ export default function LoginView() {
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Branding */}
           <View style={s.branding}>
             <View style={s.logoCircle}>
               <MaterialCommunityIcons
@@ -203,7 +360,7 @@ export default function LoginView() {
               />
             </View>
             <Text style={s.logoTitulo}>BARBEARIA</Text>
-            <Text style={s.logoSub}>Entre com seu ID de acesso</Text>
+            <Text style={s.logoSub}>Entre com seu ID e senha</Text>
           </View>
 
           <View style={s.card}>
@@ -222,17 +379,49 @@ export default function LoginView() {
                 </View>
               ) : null}
 
-              <Text style={s.label}>SEU ID</Text>
+              <Text style={s.label}>ID</Text>
               <TextInput
-                style={s.input}
-                placeholder="Ex: U365 ou P001"
+                style={s.inputId}
+                placeholder="Ex: ABC123"
                 placeholderTextColor={GREY}
                 value={inputId}
-                onChangeText={setInputId}
+                onChangeText={(t) => {
+                  setErro("");
+                  setInputId(t.toUpperCase());
+                }}
                 autoCapitalize="characters"
-                returnKeyType="done"
-                onSubmitEditing={entrar}
+                maxLength={6}
+                returnKeyType="next"
               />
+
+              <Text style={s.label}>SENHA</Text>
+              <View style={s.senhaWrap}>
+                <TextInput
+                  style={s.inputSenha}
+                  placeholder="Ex: XYZ456"
+                  placeholderTextColor={GREY}
+                  value={inputSenha}
+                  onChangeText={(t) => {
+                    setErro("");
+                    setInputSenha(t.toUpperCase());
+                  }}
+                  autoCapitalize="characters"
+                  maxLength={6}
+                  secureTextEntry={!mostrarLogin}
+                  returnKeyType="done"
+                  onSubmitEditing={entrar}
+                />
+                <TouchableOpacity
+                  onPress={() => setMostrarLogin((v) => !v)}
+                  hitSlop={8}
+                >
+                  <MaterialCommunityIcons
+                    name={mostrarLogin ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={GREY}
+                  />
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
                 style={[s.botao, loading && s.botaoDesativado]}
@@ -258,7 +447,7 @@ export default function LoginView() {
               <TouchableOpacity
                 style={s.linkBtn}
                 onPress={() => {
-                  setErro("");
+                  resetRegistro();
                   setEtapa("novoTipo");
                 }}
                 activeOpacity={0.7}
@@ -275,9 +464,7 @@ export default function LoginView() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // TELA: Escolha do tipo (Usuário / Profissional)
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── TELA: Escolha do tipo ────────────────────────────────────────────────
   if (etapa === "novoTipo") {
     return (
       <View style={s.root}>
@@ -293,17 +480,15 @@ export default function LoginView() {
             </View>
             <Text style={s.logoTitulo}>BARBEARIA</Text>
           </View>
-
           <View style={s.card}>
             <View style={s.cardBarra} />
             <View style={s.cardBody}>
               <Text style={s.cardTitulo}>CRIAR CONTA</Text>
               <Text style={s.cardSubtitulo}>Qual é o seu perfil?</Text>
 
-              {/* Usuário */}
               <TouchableOpacity
                 style={s.tipoCard}
-                onPress={registrarUsuario}
+                onPress={() => setEtapa("novoUsuario")}
                 activeOpacity={0.85}
               >
                 <View style={[s.tipoIcone, { backgroundColor: RED }]}>
@@ -326,7 +511,6 @@ export default function LoginView() {
                 />
               </TouchableOpacity>
 
-              {/* Profissional */}
               <TouchableOpacity
                 style={s.tipoCard}
                 onPress={() => setEtapa("novoProfissional")}
@@ -371,50 +555,35 @@ export default function LoginView() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // TELA: Escolha do nome (profissional)
-  // ─────────────────────────────────────────────────────────────────────────
-  if (etapa === "novoProfissional") {
+  // ── TELA: Registro — Usuário ─────────────────────────────────────────────
+  if (etapa === "novoUsuario") {
     return (
       <View style={s.root}>
         <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
-        <ScrollView contentContainerStyle={s.scroll}>
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={s.card}>
             <View style={s.cardBarra} />
             <View style={s.cardBody}>
-              <Text style={s.cardTitulo}>QUAL É O SEU NOME?</Text>
-
-              {PROFISSIONAIS.map((p) => (
-                <TouchableOpacity
-                  key={p.nome}
-                  style={s.profCard}
-                  onPress={() => registrarProfissional(p)}
-                  activeOpacity={0.85}
-                >
-                  <View style={s.profCirculo}>
-                    <Text style={s.profIniciais}>{p.initials}</Text>
-                  </View>
-                  <Text style={s.profNome}>{p.nome}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={22}
-                    color={GREY}
-                  />
-                </TouchableOpacity>
-              ))}
-
-              <TouchableOpacity
-                style={s.voltarBtn}
-                onPress={() => setEtapa("novoTipo")}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={16}
-                  color={RED}
-                />
-                <Text style={s.voltarTexto}> Voltar</Text>
-              </TouchableOpacity>
+              <Text style={s.cardTitulo}>CRIAR CONTA</Text>
+              <Text style={s.cardSubtitulo}>Usuário</Text>
+              <CamposIdSenha
+                novoId={novoId}
+                setNovoId={setNovoId}
+                novaSenha={novaSenha}
+                setNovaSenha={setNovaSenha}
+                mostrarSenha={mostrarNovaSenha}
+                setMostrarSenha={setMostrarNovaSenha}
+                erro={erro}
+                loading={loading}
+                onConfirmar={registrarUsuario}
+                onVoltar={() => {
+                  resetRegistro();
+                  setEtapa("novoTipo");
+                }}
+              />
             </View>
           </View>
         </ScrollView>
@@ -422,9 +591,69 @@ export default function LoginView() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // TELA: Sucesso — exibe o ID gerado com instrução para guardar
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── TELA: Registro — Profissional (nome livre) ───────────────────────────
+  if (etapa === "novoProfissional") {
+    return (
+      <View style={s.root}>
+        <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={s.card}>
+            <View style={s.cardBarra} />
+            <View style={s.cardBody}>
+              <Text style={s.cardTitulo}>CRIAR CONTA</Text>
+              <Text style={s.cardSubtitulo}>Profissional</Text>
+              {/* ✅ Campo de nome livre — acima dos campos de ID/senha */}
+              <CamposIdSenha
+                novoId={novoId}
+                setNovoId={setNovoId}
+                novaSenha={novaSenha}
+                setNovaSenha={setNovaSenha}
+                mostrarSenha={mostrarNovaSenha}
+                setMostrarSenha={setMostrarNovaSenha}
+                erro={erro}
+                loading={loading}
+                onConfirmar={registrarProfissional}
+                onVoltar={() => {
+                  resetRegistro();
+                  setEtapa("novoTipo");
+                }}
+                labelExtra={
+                  <>
+                    <Text style={s.label}>SEU NOME</Text>
+                    <TextInput
+                      style={[
+                        s.inputId,
+                        {
+                          letterSpacing: 0,
+                          fontSize: 16,
+                          textAlign: "left",
+                          paddingHorizontal: 14,
+                        },
+                      ]}
+                      placeholder="Ex: Diego Oliveira"
+                      placeholderTextColor={GREY}
+                      value={nomeProf}
+                      onChangeText={(t) => {
+                        setErro("");
+                        setNomeProf(t);
+                      }}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                    />
+                  </>
+                }
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── TELA: Sucesso ────────────────────────────────────────────────────────
   if (etapa === "novoSucesso") {
     return (
       <View style={s.root}>
@@ -433,7 +662,6 @@ export default function LoginView() {
           contentContainerStyle={[s.scroll, { justifyContent: "center" }]}
         >
           <View style={s.sucessoCard}>
-            {/* Ícone verde */}
             <View style={s.sucessoIcone}>
               <MaterialCommunityIcons
                 name="check-bold"
@@ -441,25 +669,19 @@ export default function LoginView() {
                 color={WHITE}
               />
             </View>
-
             <Text style={s.sucessoTitulo}>Conta criada!</Text>
-            <Text style={s.sucessoSub}>Este é o seu ID de acesso:</Text>
-
-            {/* ID em destaque */}
+            <Text style={s.sucessoSub}>Seu ID de acesso:</Text>
             <View style={s.idDestaque}>
-              <Text style={s.idDestaqueTexto}>{novoId}</Text>
+              <Text style={s.idDestaqueTexto}>{idConfirmado}</Text>
             </View>
-
-            {/* Alerta para guardar */}
             <View style={s.alertaBox}>
               <MaterialCommunityIcons name="alert" size={18} color={YELLOW} />
               <Text style={s.alertaTexto}>
-                {"  "}Guarde este ID — ele é sua{" "}
-                <Text style={{ fontWeight: "900" }}>senha de acesso</Text>. Sem
-                ele não será possível entrar novamente.
+                {"  "}Guarde seu <Text style={{ fontWeight: "900" }}>ID</Text> e
+                sua <Text style={{ fontWeight: "900" }}>senha</Text>. Sem eles
+                não será possível entrar.
               </Text>
             </View>
-
             <TouchableOpacity
               style={s.botao}
               onPress={continuar}
@@ -485,8 +707,6 @@ export default function LoginView() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   scroll: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 48, gap: 16 },
-
-  // Branding
   branding: { alignItems: "center", gap: 10, marginBottom: 8 },
   logoCircle: {
     width: 96,
@@ -507,8 +727,6 @@ const s = StyleSheet.create({
     letterSpacing: 4,
   },
   logoSub: { fontSize: 14, color: GREY },
-
-  // Card genérico
   card: {
     backgroundColor: WHITE,
     borderRadius: 16,
@@ -534,11 +752,9 @@ const s = StyleSheet.create({
     textAlign: "center",
     marginTop: -6,
   },
-
-  // Erro
   erroBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#FFF0F0",
     borderWidth: 1,
     borderColor: "#FFCCCC",
@@ -546,24 +762,49 @@ const s = StyleSheet.create({
     padding: 10,
   },
   erroTexto: { fontSize: 13, color: RED, fontWeight: "600", flex: 1 },
-
-  // Campos
+  regraBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFF5F0",
+    borderWidth: 1,
+    borderColor: "#FFCCCC",
+    borderRadius: 8,
+    padding: 12,
+  },
+  regraTexto: { fontSize: 13, color: DARK, flex: 1, lineHeight: 20 },
   label: { fontSize: 11, fontWeight: "800", color: RED, letterSpacing: 1 },
-  input: {
+  labelHint: { fontSize: 10, fontWeight: "600", color: GREY, letterSpacing: 0 },
+  inputId: {
     borderWidth: 1.5,
     borderColor: "#DDD",
     borderRadius: 8,
-    height: 52,
+    height: 56,
     paddingHorizontal: 16,
-    fontSize: 20,
+    fontSize: 22,
     color: DARK,
     backgroundColor: WHITE,
     textAlign: "center",
     fontWeight: "800",
-    letterSpacing: 3,
+    letterSpacing: 4,
   },
-
-  // Botão principal
+  senhaWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    height: 56,
+    backgroundColor: WHITE,
+    paddingHorizontal: 12,
+  },
+  inputSenha: {
+    flex: 1,
+    fontSize: 22,
+    color: DARK,
+    fontWeight: "800",
+    letterSpacing: 4,
+    textAlign: "center",
+  },
   botao: {
     backgroundColor: RED,
     borderRadius: 8,
@@ -583,13 +824,9 @@ const s = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.2,
   },
-
-  // Link "Criar conta"
   linkBtn: { alignItems: "center", paddingVertical: 4 },
   linkTexto: { fontSize: 14, color: GREY },
   linkDestaque: { color: RED, fontWeight: "800" },
-
-  // Tipos de conta
   tipoCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -610,34 +847,8 @@ const s = StyleSheet.create({
   tipoTextos: { flex: 1, gap: 2 },
   tipoTitulo: { fontSize: 17, fontWeight: "800", color: DARK },
   tipoSub: { fontSize: 12, color: GREY },
-
-  // Profissionais
-  profCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    backgroundColor: BG,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#EEE",
-  },
-  profCirculo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: RED,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profIniciais: { color: WHITE, fontSize: 16, fontWeight: "900" },
-  profNome: { flex: 1, fontSize: 16, fontWeight: "700", color: DARK },
-
-  // Voltar
   voltarBtn: { flexDirection: "row", alignItems: "center", paddingTop: 4 },
   voltarTexto: { fontSize: 14, fontWeight: "700", color: RED },
-
-  // Tela de sucesso com ID
   sucessoCard: {
     backgroundColor: WHITE,
     borderRadius: 20,
@@ -659,9 +870,8 @@ const s = StyleSheet.create({
   },
   sucessoTitulo: { fontSize: 26, fontWeight: "900", color: DARK },
   sucessoSub: { fontSize: 14, color: GREY },
-
   idDestaque: {
-    backgroundColor: CREAM,
+    backgroundColor: "#F5EDE2",
     borderWidth: 2.5,
     borderColor: RED,
     borderRadius: 14,
@@ -675,7 +885,6 @@ const s = StyleSheet.create({
     color: RED,
     letterSpacing: 6,
   },
-
   alertaBox: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -20,6 +20,7 @@ const WHITE = "#FFFFFF";
 const DARK = "#1C0A0A";
 const GREY = "#9A7A7A";
 const GREEN = "#2E7D32";
+const DANGE = "#C0392B";
 
 const COR = {
   usuario: {
@@ -39,7 +40,15 @@ const COR = {
 };
 
 const CHAVE_SESSAO = "sessao_barbearia";
+const CHAVE_CADASTROS = "cadastros_app";
 const chavePerfil = (id) => `perfil_${id}`;
+
+function validarFormato(valor) {
+  if (!valor || valor.length !== 6) return false;
+  const letras = valor.replace(/[^a-zA-Z]/g, "").length;
+  const numeros = valor.replace(/[^0-9]/g, "").length;
+  return letras === 3 && numeros === 3;
+}
 
 export default function ContatoFormView() {
   const router = useRouter();
@@ -51,9 +60,20 @@ export default function ContatoFormView() {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [genero, setGenero] = useState(null);
+  const [nomeId, setNomeId] = useState("");
+  const [nomeIdBloqueado, setNomeIdBloqueado] = useState(false);
+  // ✅ NOVO: campos de senha
+  const [senha, setSenha] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [alterandoSenha, setAlterandoSenha] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarNova, setMostrarNova] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [erro, setErro] = useState("");
+  const [confirmandoDesativar, setConfirmandoDesativar] = useState(false);
   const [favorito, setFavorito] = useState(false);
   const [categoria, setCategoria] = useState("Clientes");
 
@@ -85,6 +105,21 @@ export default function ContatoFormView() {
           setEmail(perfil.email ?? "");
           setTelefone(perfil.telefone ?? "");
           setGenero(perfil.genero ?? null);
+          if (perfil.nomeId) {
+            setNomeId(perfil.nomeId);
+            setNomeIdBloqueado(true);
+          } else {
+            setNomeId(s.id ?? "");
+          }
+        } else {
+          setNomeId(s.id ?? "");
+        }
+
+        // ✅ Carrega senha atual do cadastros_app
+        const rawCad = await AsyncStorage.getItem(CHAVE_CADASTROS);
+        if (rawCad) {
+          const cadastros = JSON.parse(rawCad);
+          if (cadastros[s.id]?.senha) setSenha(cadastros[s.id].senha);
         }
       }
     };
@@ -94,6 +129,40 @@ export default function ContatoFormView() {
   const isProfissional = sessao?.tipo === "profissional";
   const CL = isProfissional ? COR.profissional : COR.usuario;
 
+  // ✅ NOVO: salvar nova senha
+  async function salvarSenha() {
+    setErro("");
+    if (!validarFormato(novaSenha)) {
+      setErro("Senha deve ter 6 caracteres: 3 letras e 3 números.\nEx: XYZ456");
+      return;
+    }
+    if (novaSenha !== confirmarSenha) {
+      setErro("As senhas não coincidem.");
+      return;
+    }
+    try {
+      // Atualiza em cadastros_app
+      const rawCad = await AsyncStorage.getItem(CHAVE_CADASTROS);
+      const cadastros = rawCad ? JSON.parse(rawCad) : {};
+      if (sessao?.id && cadastros[sessao.id]) {
+        cadastros[sessao.id].senha = novaSenha.toUpperCase();
+        await AsyncStorage.setItem(CHAVE_CADASTROS, JSON.stringify(cadastros));
+        // Atualiza sessão ativa também
+        await AsyncStorage.setItem(
+          CHAVE_SESSAO,
+          JSON.stringify(cadastros[sessao.id]),
+        );
+      }
+      setSenha(novaSenha.toUpperCase());
+      setNovaSenha("");
+      setConfirmarSenha("");
+      setAlterandoSenha(false);
+      setErro("");
+    } catch {
+      setErro("Erro ao alterar senha.");
+    }
+  }
+
   async function salvar() {
     setErro("");
     if (!nome.trim()) {
@@ -102,6 +171,11 @@ export default function ContatoFormView() {
     }
     if (!email.trim()) {
       setErro("Informe seu e-mail.");
+      return;
+    }
+
+    if (!nomeIdBloqueado && nomeId && !validarFormato(nomeId)) {
+      setErro("Nome de Id deve ter 6 caracteres: 3 letras e 3 números.");
       return;
     }
 
@@ -120,11 +194,15 @@ export default function ContatoFormView() {
       await ContatoService.save(contato);
 
       if (sessao?.id) {
+        const rawPerfil = await AsyncStorage.getItem(chavePerfil(sessao.id));
+        const perfilAtual = rawPerfil ? JSON.parse(rawPerfil) : {};
         const perfil = {
+          ...perfilAtual,
           nome: nome.trim(),
           email: email.trim(),
           telefone: telefone.trim(),
           genero: genero ?? "M",
+          nomeId: perfilAtual.nomeId ?? nomeId.trim().toUpperCase(),
         };
         await AsyncStorage.setItem(
           chavePerfil(sessao.id),
@@ -145,6 +223,21 @@ export default function ContatoFormView() {
     } catch {
       setSalvando(false);
       setErro("Erro ao salvar. Tente novamente.");
+    }
+  }
+
+  async function desativarConta() {
+    try {
+      const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
+      const cadastros = raw ? JSON.parse(raw) : {};
+      if (sessao?.id && cadastros[sessao.id]) {
+        cadastros[sessao.id].ativa = false;
+        await AsyncStorage.setItem(CHAVE_CADASTROS, JSON.stringify(cadastros));
+      }
+      await AsyncStorage.removeItem(CHAVE_SESSAO);
+      router.replace("/views/LoginView");
+    } catch {
+      setErro("Erro ao desativar conta.");
     }
   }
 
@@ -174,7 +267,7 @@ export default function ContatoFormView() {
           <View style={s.cardBody}>
             <Text style={s.cardTitulo}>MEU CADASTRO</Text>
 
-            {/* ID */}
+            {/* ID da sessão */}
             {sessao?.id && (
               <>
                 <Text style={[s.label, { color: CL.accent }]}>ID</Text>
@@ -191,7 +284,6 @@ export default function ContatoFormView() {
               </>
             )}
 
-            {/* Erro */}
             {erro ? (
               <View
                 style={[
@@ -241,11 +333,166 @@ export default function ContatoFormView() {
               value={telefone}
               onChangeText={setTelefone}
               keyboardType="phone-pad"
-              returnKeyType="done"
+              returnKeyType="next"
             />
 
-            {/* Gênero — compacto, só ícone ── */}
-            <Text style={[s.label, { color: CL.accent }]}>GÊNERO</Text>
+            {/* Nome de Id — bloqueado após primeiro save */}
+            <Text style={[s.label, { color: CL.accent }]}>NOME DE ID</Text>
+            {nomeIdBloqueado ? (
+              <View style={s.inputReadOnly}>
+                <MaterialCommunityIcons
+                  name="card-account-details-outline"
+                  size={18}
+                  color={CL.accent}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={s.inputReadOnlyTexto}>{nomeId}</Text>
+                <MaterialCommunityIcons name="lock" size={14} color={GREY} />
+              </View>
+            ) : (
+              <>
+                <Text style={s.campoHint}>
+                  6 caracteres: 3 letras e 3 números • Ex: ABC123
+                </Text>
+                <TextInput
+                  style={s.input}
+                  placeholder="Ex: ABC123"
+                  placeholderTextColor={GREY}
+                  value={nomeId}
+                  onChangeText={(t) => setNomeId(t.toUpperCase())}
+                  autoCapitalize="characters"
+                  maxLength={6}
+                  returnKeyType="next"
+                />
+              </>
+            )}
+
+            {/* ✅ NOVO: Senha — mutável */}
+            <Text style={[s.label, { color: CL.accent }]}>SENHA</Text>
+            {!alterandoSenha ? (
+              // Mostra senha mascarada + botão alterar
+              <View style={s.senhaRow}>
+                <View style={[s.inputReadOnly, { flex: 1, marginBottom: 0 }]}>
+                  <MaterialCommunityIcons
+                    name="lock-outline"
+                    size={18}
+                    color={CL.accent}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={s.inputReadOnlyTexto}>
+                    {mostrarSenha ? senha : "••••••"}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setMostrarSenha((v) => !v)}
+                    hitSlop={8}
+                  >
+                    <MaterialCommunityIcons
+                      name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
+                      size={18}
+                      color={GREY}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  style={[s.btnAlterar, { borderColor: CL.accent }]}
+                  onPress={() => {
+                    setAlterandoSenha(true);
+                    setErro("");
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[s.btnAlterarTexto, { color: CL.accent }]}>
+                    Alterar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Formulário de troca de senha
+              <View style={s.senhaBox}>
+                <Text style={s.campoHint}>
+                  Nova senha: 6 caracteres, 3 letras e 3 números
+                </Text>
+
+                <View style={s.senhaWrap}>
+                  <TextInput
+                    style={s.inputSenha}
+                    placeholder="Nova senha"
+                    placeholderTextColor={GREY}
+                    value={novaSenha}
+                    onChangeText={(t) => setNovaSenha(t.toUpperCase())}
+                    autoCapitalize="characters"
+                    maxLength={6}
+                    secureTextEntry={!mostrarNova}
+                    returnKeyType="next"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setMostrarNova((v) => !v)}
+                    style={s.olhoBtn}
+                    hitSlop={8}
+                  >
+                    <MaterialCommunityIcons
+                      name={mostrarNova ? "eye-off-outline" : "eye-outline"}
+                      size={18}
+                      color={GREY}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={s.senhaWrap}>
+                  <TextInput
+                    style={s.inputSenha}
+                    placeholder="Confirmar nova senha"
+                    placeholderTextColor={GREY}
+                    value={confirmarSenha}
+                    onChangeText={(t) => setConfirmarSenha(t.toUpperCase())}
+                    autoCapitalize="characters"
+                    maxLength={6}
+                    secureTextEntry={!mostrarConfirmar}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setMostrarConfirmar((v) => !v)}
+                    style={s.olhoBtn}
+                    hitSlop={8}
+                  >
+                    <MaterialCommunityIcons
+                      name={
+                        mostrarConfirmar ? "eye-off-outline" : "eye-outline"
+                      }
+                      size={18}
+                      color={GREY}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={s.senhaBotoes}>
+                  <TouchableOpacity
+                    style={[s.btnSalvarSenha, { backgroundColor: CL.accent }]}
+                    onPress={salvarSenha}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={s.btnSalvarSenhaTexto}>Salvar senha</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.btnCancelar}
+                    onPress={() => {
+                      setAlterandoSenha(false);
+                      setNovaSenha("");
+                      setConfirmarSenha("");
+                      setErro("");
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.btnCancelarTexto}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Gênero */}
+            <Text style={[s.label, { color: CL.accent, marginTop: 8 }]}>
+              GÊNERO
+            </Text>
             <View style={s.generoRow}>
               <TouchableOpacity
                 style={[
@@ -262,7 +509,6 @@ export default function ContatoFormView() {
                   color={genero === "M" ? WHITE : GREY}
                 />
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   s.generoBtn,
@@ -280,7 +526,7 @@ export default function ContatoFormView() {
               </TouchableOpacity>
             </View>
 
-            {/* Botão Salvar */}
+            {/* Salvar */}
             <TouchableOpacity
               style={[
                 s.botao,
@@ -305,6 +551,50 @@ export default function ContatoFormView() {
                 </View>
               )}
             </TouchableOpacity>
+
+            {/* Desativar conta */}
+            <View style={s.separador} />
+            {!confirmandoDesativar ? (
+              <TouchableOpacity
+                style={s.btnDesativar}
+                onPress={() => setConfirmandoDesativar(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="account-off-outline"
+                  size={18}
+                  color={DANGE}
+                />
+                <Text style={s.btnDesativarTexto}> Desativar minha conta</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={s.confirmaDesativar}>
+                <MaterialCommunityIcons
+                  name="alert-circle-outline"
+                  size={16}
+                  color={DANGE}
+                />
+                <Text style={s.confirmaDesativarTexto}>
+                  {"  "}Deseja desativar sua conta?
+                </Text>
+                <View style={s.confirmaRow}>
+                  <TouchableOpacity
+                    style={s.confirmaSim}
+                    onPress={desativarConta}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.confirmaSimTexto}>Sim, desativar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.confirmaNao}
+                    onPress={() => setConfirmandoDesativar(false)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.confirmaNaoTexto}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -356,7 +646,7 @@ const s = StyleSheet.create({
 
   erroBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
@@ -364,7 +654,8 @@ const s = StyleSheet.create({
   },
   erroTexto: { fontSize: 13, fontWeight: "600", flex: 1 },
 
-  label: { fontSize: 11, fontWeight: "800", letterSpacing: 1, marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: "800", letterSpacing: 1, marginBottom: 4 },
+  campoHint: { fontSize: 11, color: GREY, marginBottom: 6, marginTop: -2 },
   input: {
     borderWidth: 1.5,
     borderColor: "#DDD",
@@ -390,7 +681,68 @@ const s = StyleSheet.create({
   },
   inputReadOnlyTexto: { flex: 1, fontSize: 15, color: DARK, fontWeight: "700" },
 
-  // Gênero — compacto
+  // Senha
+  senhaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 18,
+  },
+  btnAlterar: {
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 48,
+    justifyContent: "center",
+  },
+  btnAlterarTexto: { fontSize: 13, fontWeight: "800" },
+
+  senhaBox: {
+    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#EEE",
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+    marginBottom: 18,
+  },
+  senhaWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    height: 48,
+    backgroundColor: WHITE,
+    paddingHorizontal: 12,
+  },
+  inputSenha: {
+    flex: 1,
+    fontSize: 16,
+    color: DARK,
+    fontWeight: "700",
+    letterSpacing: 2,
+  },
+  olhoBtn: { padding: 4 },
+  senhaBotoes: { flexDirection: "row", gap: 10 },
+  btnSalvarSenha: {
+    flex: 1,
+    borderRadius: 8,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  btnSalvarSenhaTexto: { color: WHITE, fontWeight: "800", fontSize: 14 },
+  btnCancelar: {
+    flex: 1,
+    backgroundColor: "#EEE",
+    borderRadius: 8,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  btnCancelarTexto: { color: DARK, fontWeight: "800", fontSize: 14 },
+
   generoRow: { flexDirection: "row", gap: 10, marginBottom: 22 },
   generoBtn: {
     width: 52,
@@ -420,4 +772,40 @@ const s = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.2,
   },
+
+  separador: { height: 1, backgroundColor: "#EEE", marginVertical: 20 },
+  btnDesativar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  btnDesativarTexto: { fontSize: 14, fontWeight: "700", color: DANGE },
+
+  confirmaDesativar: {
+    backgroundColor: "#FFF5F5",
+    borderWidth: 1,
+    borderColor: "#FFCCCC",
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  confirmaDesativarTexto: { fontSize: 13, color: DARK, lineHeight: 18 },
+  confirmaRow: { flexDirection: "row", gap: 10 },
+  confirmaSim: {
+    flex: 1,
+    backgroundColor: DANGE,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  confirmaSimTexto: { color: WHITE, fontWeight: "800", fontSize: 13 },
+  confirmaNao: {
+    flex: 1,
+    backgroundColor: "#EEE",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  confirmaNaoTexto: { color: DARK, fontWeight: "800", fontSize: 13 },
 });
