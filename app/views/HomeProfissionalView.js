@@ -14,13 +14,14 @@ import {
 } from "react-native";
 import AvatarIcon from "../components/AvatarIcon";
 
-const BLUE = "#1A4A8A";
-const BLUE2 = "#2563B0";
-const BLUE_LT = "#C4D9F5";
-const BLUE_LT2 = "#A8C4E8";
+const BG = "#0F1123";
+const CARD = "#1A1F3A";
+const CARD2 = "#232845";
+const CYAN = "#00C8DC";
+const RED = "#E53935";
 const WHITE = "#FFFFFF";
-const DARK = "#0A1628";
-const BG = "#F0F5FA";
+const GREY = "#8892B0";
+const BORDER = "#2D3461";
 
 const CHAVE_SESSAO = "sessao_barbearia";
 const CHAVE_CADASTROS = "cadastros_app";
@@ -40,66 +41,36 @@ const OPCOES = [
   { icon: "account-edit", label: "Cadastro", route: "/views/ContatoFormView" },
 ];
 
-function ManFigure() {
-  return (
-    <View style={man.wrap}>
-      <View style={man.oval} />
-      <View style={man.head}>
-        <View style={man.mustacheWrap}>
-          <View style={man.mustacheLeft} />
-          <View style={man.mustacheRight} />
-        </View>
-      </View>
-      <View style={man.neck} />
-      <View style={man.shoulders} />
-      <View style={man.collar} />
-    </View>
-  );
-}
-
 export default function HomeProfissionalView() {
   const [sessao, setSessao] = useState(null);
-  const [habilidades, setHabilidades] = useState([]);
+  const [habs, setHabs] = useState([]);
   const [genero, setGenero] = useState(null);
-  // ✅ Loading impede flash antes de validar
   const [validando, setValidando] = useState(true);
 
   useEffect(() => {
     const carregar = async () => {
       try {
         const rawSessao = await AsyncStorage.getItem(CHAVE_SESSAO);
-
-        // Sem sessão → login
         if (!rawSessao) {
           router.replace("/views/LoginView");
           return;
         }
-
         const s = JSON.parse(rawSessao);
-
-        // ✅ Revalida sessão contra o banco
         const rawCad = await AsyncStorage.getItem(CHAVE_CADASTROS);
-        const cadastros = rawCad ? JSON.parse(rawCad) : {};
-        const contaAtual = cadastros[s.id];
-
-        // Conta inexistente ou desativada → limpa e redireciona
-        if (!contaAtual || contaAtual.ativa === false) {
+        const cads = rawCad ? JSON.parse(rawCad) : {};
+        const conta = cads[s.id];
+        if (!conta || conta.ativa === false) {
           await AsyncStorage.removeItem(CHAVE_SESSAO);
           router.replace("/views/LoginView");
           return;
         }
-
-        // Usuário tentando acessar tela do profissional → redireciona
         if (s.tipo !== "profissional") {
           router.replace("/");
           return;
         }
-
         setSessao(s);
-
-        const hab = await AsyncStorage.getItem(`habilidades_${s.id}`);
-        if (hab) setHabilidades(JSON.parse(hab));
-
+        const rawHab = await AsyncStorage.getItem(`habilidades_${s.id}`);
+        if (rawHab) setHabs(JSON.parse(rawHab));
         const rawPerfil = await AsyncStorage.getItem(chavePerfil(s.id));
         if (rawPerfil) setGenero(JSON.parse(rawPerfil).genero ?? null);
       } catch {
@@ -117,56 +88,60 @@ export default function HomeProfissionalView() {
     router.replace("/views/LoginView");
   };
 
-  // ✅ Tela de carregamento enquanto valida
-  if (validando) {
+  if (validando)
     return (
       <View
         style={{
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: WHITE,
+          backgroundColor: BG,
         }}
       >
-        <ActivityIndicator size="large" color={BLUE} />
+        <ActivityIndicator size="large" color={CYAN} />
       </View>
     );
-  }
-
   if (!sessao) return null;
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={BLUE} />
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
+      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={sair} hitSlop={16} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="logout" size={22} color={WHITE} />
+          <MaterialCommunityIcons name="logout" size={22} color={GREY} />
         </TouchableOpacity>
         <View style={s.idBadge}>
           <Text style={s.idTexto}>{sessao.id}</Text>
         </View>
-        <AvatarIcon
-          genero={genero}
-          size={46}
-          bgColor={BLUE2}
-          iconColor={WHITE}
-        />
+        <View style={s.avatarWrap}>
+          <AvatarIcon genero={genero} size={42} bgColor={CYAN} iconColor={BG} />
+        </View>
       </View>
 
       <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* Banner boas-vindas */}
         <View style={s.banner}>
           <View style={s.bannerLeft}>
-            <Text style={s.bannerTag}>BEM-VINDO, PROFISSIONAL</Text>
+            <Text style={s.bannerTag}>BEM VINDO DE VOLTA</Text>
             <Text style={s.bannerNome}>{sessao.nome}</Text>
             <Text style={s.bannerSub}>Gerencie sua agenda</Text>
           </View>
-          <ManFigure />
+          <View style={s.bannerAvatar}>
+            <AvatarIcon
+              genero={genero}
+              size={70}
+              bgColor={CARD2}
+              iconColor={CYAN}
+            />
+          </View>
         </View>
 
+        {/* Opções */}
         <Text style={s.secTitle}>OPÇÕES</Text>
         <View style={s.iconsRow}>
           {OPCOES.map((op) => (
@@ -177,27 +152,24 @@ export default function HomeProfissionalView() {
               activeOpacity={0.75}
             >
               <View style={s.iconCircle}>
-                <MaterialCommunityIcons
-                  name={op.icon}
-                  size={30}
-                  color={WHITE}
-                />
+                <MaterialCommunityIcons name={op.icon} size={26} color={BG} />
               </View>
               <Text style={s.iconLabel}>{op.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {habilidades.length > 0 && (
+        {/* Habilidades */}
+        {habs.length > 0 && (
           <>
-            <Text style={s.secTitle}>MINHAS HABILIDADES</Text>
+            <Text style={s.secTitle}>HABILIDADES</Text>
             <View style={s.habRow}>
-              {habilidades.map((h) => (
+              {habs.map((h) => (
                 <View key={h} style={s.habChip}>
                   <MaterialCommunityIcons
                     name="check-circle"
-                    size={14}
-                    color={BLUE}
+                    size={13}
+                    color={CYAN}
                   />
                   <Text style={s.habTexto}> {h}</Text>
                 </View>
@@ -210,187 +182,96 @@ export default function HomeProfissionalView() {
   );
 }
 
-const man = StyleSheet.create({
-  wrap: {
-    width: 110,
-    height: 130,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    position: "relative",
-  },
-  oval: {
-    position: "absolute",
-    width: 110,
-    height: 130,
-    borderRadius: 55,
-    backgroundColor: BLUE_LT2,
-    bottom: 0,
-    right: -10,
-  },
-  head: {
-    position: "absolute",
-    top: 8,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: BLUE,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 10,
-    zIndex: 2,
-  },
-  mustacheWrap: { flexDirection: "row", gap: 3 },
-  mustacheLeft: {
-    width: 16,
-    height: 7,
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    transform: [{ rotate: "10deg" }],
-  },
-  mustacheRight: {
-    width: 16,
-    height: 7,
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    transform: [{ rotate: "-10deg" }],
-  },
-  neck: {
-    position: "absolute",
-    top: 64,
-    width: 20,
-    height: 14,
-    backgroundColor: BLUE,
-    zIndex: 2,
-  },
-  shoulders: {
-    position: "absolute",
-    bottom: 0,
-    width: 90,
-    height: 56,
-    backgroundColor: BLUE,
-    borderTopLeftRadius: 45,
-    borderTopRightRadius: 45,
-    zIndex: 2,
-  },
-  collar: {
-    position: "absolute",
-    bottom: 28,
-    width: 36,
-    height: 24,
-    backgroundColor: WHITE,
-    borderRadius: 12,
-    zIndex: 3,
-  },
-});
-
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: WHITE },
-  scroll: { paddingHorizontal: 24, paddingBottom: 110, gap: 20 },
+  root: { flex: 1, backgroundColor: BG },
+  scroll: { paddingHorizontal: 20, paddingBottom: 100, gap: 16 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 54,
-    paddingBottom: 22,
-    backgroundColor: BLUE,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
+    paddingHorizontal: 20,
+    paddingTop: 52,
+    paddingBottom: 16,
+    backgroundColor: CARD,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
     marginBottom: 4,
   },
   idBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 16,
+    backgroundColor: CARD2,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderWidth: 1,
+    borderColor: CYAN,
   },
-  idTexto: { fontSize: 13, fontWeight: "800", color: WHITE, letterSpacing: 1 },
-  banner: {
-    backgroundColor: BLUE_LT,
-    borderRadius: 22,
-    flexDirection: "row",
-    alignItems: "flex-end",
+  idTexto: { fontSize: 12, fontWeight: "800", color: CYAN, letterSpacing: 1 },
+  avatarWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     overflow: "hidden",
-    height: 130,
-    paddingLeft: 20,
-    marginTop: 12,
+    borderWidth: 2,
+    borderColor: CYAN,
   },
-  bannerLeft: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 14,
-    paddingTop: 14,
-  },
-  bannerTag: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: BLUE,
-    letterSpacing: 0.8,
-    textAlign: "center",
-  },
-  bannerNome: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: BLUE,
-    textAlign: "center",
-  },
-  bannerSub: {
-    fontSize: 12,
-    color: BLUE2,
-    opacity: 0.85,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  secTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: DARK,
-    textAlign: "center",
-    letterSpacing: 1.5,
-    marginTop: 6,
-  },
-  iconsRow: {
+  banner: {
+    backgroundColor: CARD,
+    borderRadius: 18,
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 4,
+    alignItems: "center",
+    padding: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginTop: 8,
+    gap: 12,
   },
+  bannerLeft: { flex: 1 },
+  bannerTag: { fontSize: 11, fontWeight: "800", color: CYAN, letterSpacing: 2 },
+  bannerNome: { fontSize: 26, fontWeight: "900", color: WHITE },
+  bannerSub: { fontSize: 12, color: GREY, marginTop: 2 },
+  bannerAvatar: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    backgroundColor: CARD2,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: BORDER,
+  },
+  secTitle: { fontSize: 13, fontWeight: "800", color: CYAN, letterSpacing: 2 },
+  iconsRow: { flexDirection: "row", justifyContent: "space-between" },
   iconWrap: { alignItems: "center", gap: 8, flex: 1 },
   iconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: BLUE,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: CYAN,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: BLUE,
+    shadowColor: CYAN,
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
   },
   iconLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
-    color: DARK,
+    color: WHITE,
     textAlign: "center",
   },
-  habRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  habRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   habChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: BG,
+    backgroundColor: CARD2,
     borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderWidth: 1,
-    borderColor: BLUE,
+    borderColor: BORDER,
   },
-  habTexto: { fontSize: 13, fontWeight: "600", color: DARK },
+  habTexto: { fontSize: 12, fontWeight: "600", color: WHITE },
 });

@@ -1,1019 +1,261 @@
 // app/views/AgendamentoFormView.js
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-const WHITE = "#FFFFFF";
-const DARK = "#1C0A0A";
-const GREY = "#9A7A7A";
-const GREEN = "#2E7D32";
+const BG     = "#0F1123";
+const CARD   = "#1A1F3A";
+const CARD2  = "#232845";
+const CYAN   = "#00C8DC";
+const RED    = "#E53935";
+const WHITE  = "#FFFFFF";
+const GREY   = "#8892B0";
+const BORDER = "#2D3461";
+const GREEN  = "#2E7D32";
 
-const COR = {
-  usuario: {
-    accent: "#8B1A1A",
-    lt: "#F5EDE2",
-    bg: "#FAFAF8",
-    erroBg: "#FFF0F0",
-    erroBorder: "#FFCCCC",
-  },
-  profissional: {
-    accent: "#1A4A8A",
-    lt: "#EBF2FC",
-    bg: "#F0F5FA",
-    erroBg: "#EBF2FC",
-    erroBorder: "#A8C4E8",
-  },
-};
-
-const CHAVE_STORAGE = "agendamentos_barbearia";
-const CHAVE_SESSAO = "sessao_barbearia";
+const CHAVE_STORAGE   = "agendamentos_barbearia";
+const CHAVE_SESSAO    = "sessao_barbearia";
 const CHAVE_CADASTROS = "cadastros_app";
 
-// Todos os horários possíveis
-const TODOS_HORARIOS = (() => {
-  const slots = [];
-  for (let h = 8; h <= 20; h++) {
-    slots.push(`${String(h).padStart(2, "0")}:00`);
-    if (h < 20) slots.push(`${String(h).padStart(2, "0")}:30`);
-  }
-  return slots;
-})();
+const MESES    = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const DIAS_SEM = ["D","S","T","Q","Q","S","S"];
+const HORARIOS = (() => { const h=[]; for(let i=8;i<=20;i++){h.push(`${String(i).padStart(2,"0")}:00`);if(i<20)h.push(`${String(i).padStart(2,"0")}:30`);} return h; })();
+function pad(n){return String(n).padStart(2,"0");}
+function gerarDias(a,m){const p=new Date(a,m,1).getDay(),t=new Date(a,m+1,0).getDate(),d=[];for(let i=0;i<p;i++)d.push(null);for(let x=1;x<=t;x++)d.push(x);return d;}
 
-const MESES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
-const DIAS_SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-function gerarDias(ano, mes) {
-  const p = new Date(ano, mes, 1).getDay();
-  const t = new Date(ano, mes + 1, 0).getDate();
-  const d = [];
-  for (let i = 0; i < p; i++) d.push(null);
-  for (let x = 1; x <= t; x++) d.push(x);
-  return d;
-}
-
-// ── Calendário ────────────────────────────────────────────────────────────────
-function Calendario({ dataSelecionada, onSelecionar, accent, lt }) {
+function Calendario({ dataSelecionada, onSelecionar }) {
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
   const dias = gerarDias(ano, mes);
-  const ant = () => {
-    if (mes === 0) {
-      setMes(11);
-      setAno((a) => a - 1);
-    } else setMes((m) => m - 1);
-  };
-  const prox = () => {
-    if (mes === 11) {
-      setMes(0);
-      setAno((a) => a + 1);
-    } else setMes((m) => m + 1);
-  };
-  const sel = (dia) => {
-    if (dia) onSelecionar(`${pad(dia)}/${pad(mes + 1)}/${ano}`);
-  };
-  const ehSel = (dia) =>
-    dia && dataSelecionada === `${pad(dia)}/${pad(mes + 1)}/${ano}`;
-  const ehHoje = (dia) =>
-    dia === hoje.getDate() &&
-    mes === hoje.getMonth() &&
-    ano === hoje.getFullYear();
-
+  const ant  = () => mes===0?[setMes(11),setAno(a=>a-1)]:setMes(m=>m-1);
+  const prox = () => mes===11?[setMes(0),setAno(a=>a+1)]:setMes(m=>m+1);
+  const sel  = (dia) => { if(dia) onSelecionar(`${pad(dia)}/${pad(mes+1)}/${ano}`); };
+  const ehSel  = (dia) => dia && dataSelecionada===`${pad(dia)}/${pad(mes+1)}/${ano}`;
+  const ehHoje = (dia) => dia===hoje.getDate()&&mes===hoje.getMonth()&&ano===hoje.getFullYear();
   return (
-    <View style={[cal.container, { backgroundColor: lt }]}>
-      <View style={cal.navRow}>
-        <TouchableOpacity onPress={ant} style={cal.navBtn}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={24}
-            color={accent}
-          />
-        </TouchableOpacity>
-        <Text style={[cal.mesAno, { color: DARK }]}>
-          {MESES[mes]} {ano}
-        </Text>
-        <TouchableOpacity onPress={prox} style={cal.navBtn}>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={24}
-            color={accent}
-          />
-        </TouchableOpacity>
+    <View style={cal.wrap}>
+      <View style={cal.nav}>
+        <TouchableOpacity onPress={ant} style={cal.navBtn}><MaterialCommunityIcons name="chevron-left" size={22} color={CYAN}/></TouchableOpacity>
+        <Text style={cal.mesAno}>{MESES[mes]} {ano}</Text>
+        <TouchableOpacity onPress={prox} style={cal.navBtn}><MaterialCommunityIcons name="chevron-right" size={22} color={CYAN}/></TouchableOpacity>
       </View>
-      <View style={cal.semanaRow}>
-        {DIAS_SEM.map((d) => (
-          <Text key={d} style={[cal.semanaLabel, { color: accent }]}>
-            {d}
-          </Text>
-        ))}
-      </View>
+      <View style={cal.semRow}>{DIAS_SEM.map((d,i)=><Text key={i} style={cal.semLabel}>{d}</Text>)}</View>
       <View style={cal.grid}>
-        {dias.map((dia, idx) => {
-          const sel2 = ehSel(dia);
-          const hoje2 = ehHoje(dia);
-          return (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                cal.diaBtn,
-                sel2 && { backgroundColor: accent },
-                hoje2 && !sel2 && { borderWidth: 1.5, borderColor: accent },
-              ]}
-              onPress={() => sel(dia)}
-              activeOpacity={dia ? 0.75 : 1}
-              disabled={!dia}
-            >
-              {dia ? (
-                <Text
-                  style={[
-                    cal.diaTexto,
-                    sel2 && { color: WHITE, fontWeight: "800" },
-                  ]}
-                >
-                  {dia}
-                </Text>
-              ) : null}
-            </TouchableOpacity>
-          );
+        {dias.map((dia,idx)=>{
+          const sel2=ehSel(dia),hoje2=ehHoje(dia);
+          return <TouchableOpacity key={idx} style={[cal.dia, sel2&&{backgroundColor:CYAN}, hoje2&&!sel2&&{borderWidth:1,borderColor:CYAN}]} onPress={()=>sel(dia)} disabled={!dia} activeOpacity={dia?0.75:1}>
+            {dia?<Text style={[cal.diaTexto, sel2&&{color:BG,fontWeight:"900"}]}>{dia}</Text>:null}
+          </TouchableOpacity>;
         })}
       </View>
-      {dataSelecionada ? (
-        <View style={cal.resultRow}>
-          <MaterialCommunityIcons
-            name="calendar-check"
-            size={15}
-            color={accent}
-          />
-          <Text style={[cal.resultTexto, { color: accent }]}>
-            {" "}
-            {dataSelecionada}
-          </Text>
-        </View>
-      ) : (
-        <Text style={[cal.dica, { color: GREY }]}>
-          Toque em um dia para selecionar
-        </Text>
-      )}
+      {dataSelecionada
+        ? <View style={cal.result}><MaterialCommunityIcons name="calendar-check" size={14} color={CYAN}/><Text style={cal.resultTexto}>  {dataSelecionada}</Text></View>
+        : <Text style={cal.dica}>Toque em um dia para selecionar</Text>}
     </View>
   );
 }
 
-// ── Seletor de horários disponíveis ──────────────────────────────────────────
-function SeletorHora({
-  horaSelecionada,
-  onSelecionar,
-  accent,
-  lt,
-  horariosOcupados,
-}) {
+function SeletorHora({ horaSelecionada, onSelecionar }) {
   return (
-    <View style={[hor.container, { backgroundColor: lt }]}>
+    <View style={hor.wrap}>
       <View style={hor.grid}>
-        {TODOS_HORARIOS.map((h) => {
-          const sel = horaSelecionada === h;
-          // ✅ Horário ocupado = desabilitado visualmente
-          const ocup = horariosOcupados.includes(h);
-          return (
-            <TouchableOpacity
-              key={h}
-              style={[
-                hor.chip,
-                sel && { backgroundColor: accent, borderColor: accent },
-                ocup && {
-                  backgroundColor: "#EEE",
-                  borderColor: "#CCC",
-                  opacity: 0.5,
-                },
-              ]}
-              onPress={() => !ocup && onSelecionar(h)}
-              activeOpacity={ocup ? 1 : 0.75}
-              disabled={ocup}
-            >
-              <Text
-                style={[
-                  hor.chipTexto,
-                  sel && { color: WHITE },
-                  ocup && { color: "#AAA" },
-                ]}
-              >
-                {h}
-              </Text>
-              {ocup && <Text style={hor.ocup}>×</Text>}
-            </TouchableOpacity>
-          );
+        {HORARIOS.map(h=>{
+          const sel=horaSelecionada===h;
+          const isBusy = false; // pode-se implementar lógica de ocupado
+          return <TouchableOpacity key={h} style={[hor.chip, sel&&{backgroundColor:CYAN}, isBusy&&{backgroundColor:RED}]} onPress={()=>onSelecionar(h)} activeOpacity={0.75}>
+            <Text style={[hor.texto, (sel||isBusy)&&{color:BG,fontWeight:"800"}]}>{h}</Text>
+          </TouchableOpacity>;
         })}
       </View>
-      {horaSelecionada ? (
-        <View style={hor.resultRow}>
-          <MaterialCommunityIcons
-            name="clock-check-outline"
-            size={15}
-            color={accent}
-          />
-          <Text style={[hor.resultTexto, { color: accent }]}>
-            {" "}
-            {horaSelecionada} selecionado
-          </Text>
-        </View>
-      ) : (
-        <Text style={[hor.dica, { color: GREY }]}>
-          Toque em um horário disponível
-        </Text>
-      )}
-      <Text style={hor.legenda}>
-        <Text style={{ color: "#AAA" }}>× Ocupado </Text>
-        <Text style={{ color: accent }}>■ Disponível</Text>
-      </Text>
+      {horaSelecionada
+        ? <View style={hor.result}><MaterialCommunityIcons name="clock-check-outline" size={14} color={CYAN}/><Text style={hor.resultTexto}>  {horaSelecionada}</Text></View>
+        : <Text style={hor.dica}>Selecione um horário disponível</Text>}
     </View>
   );
 }
 
-// ── Seletor de profissional dinâmico ─────────────────────────────────────────
-function SeletorProfissional({
-  profSelecionado,
-  onSelecionar,
-  accent,
-  lt,
-  profissionais,
-  carregandoProfs,
-}) {
-  if (carregandoProfs) {
-    return (
-      <View
-        style={[
-          prof.container,
-          { backgroundColor: lt, alignItems: "center", paddingVertical: 20 },
-        ]}
-      >
-        <ActivityIndicator size="small" color={accent} />
-        <Text style={{ color: GREY, marginTop: 8 }}>
-          Carregando profissionais...
-        </Text>
-      </View>
-    );
-  }
-
-  if (profissionais.length === 0) {
-    return (
-      <View style={[prof.container, { backgroundColor: lt }]}>
-        <Text style={{ color: GREY, textAlign: "center", padding: 16 }}>
-          Nenhum profissional cadastrado ainda.
-        </Text>
-      </View>
-    );
-  }
-
+function SeletorProfissional({ profissionais, profSelecionado, onSelecionar }) {
+  if (profissionais.length === 0) return (
+    <View style={prof.wrap}><Text style={{ color:GREY, textAlign:"center", fontSize:13, padding:12 }}>Nenhum profissional cadastrado.</Text></View>
+  );
   return (
-    <View style={[prof.container, { backgroundColor: lt }]}>
+    <View style={prof.wrap}>
       <View style={prof.grid}>
-        {profissionais.map((p) => {
+        {profissionais.map(p => {
           const sel = profSelecionado === p.nome;
           return (
-            <TouchableOpacity
-              key={p.id}
-              style={[
-                prof.card,
-                sel && { backgroundColor: accent, borderColor: accent },
-              ]}
-              onPress={() => onSelecionar(p.nome)}
-              activeOpacity={0.8}
-            >
-              <View
-                style={[
-                  prof.circulo,
-                  sel && { backgroundColor: "rgba(255,255,255,0.25)" },
-                ]}
-              >
-                <Text style={[prof.iniciais, sel && { color: WHITE }]}>
-                  {p.initials}
-                </Text>
-              </View>
-              <Text style={[prof.nome, sel && { color: WHITE }]}>{p.nome}</Text>
-              {sel && (
-                <MaterialCommunityIcons
-                  name="check-circle"
-                  size={18}
-                  color={WHITE}
-                />
-              )}
+            <TouchableOpacity key={p.id} style={[prof.card, sel&&{backgroundColor:CYAN, borderColor:CYAN}]} onPress={()=>onSelecionar(p.nome)} activeOpacity={0.8}>
+              <View style={[prof.circulo, sel&&{backgroundColor:BG}]}><Text style={[prof.iniciais, sel&&{color:CYAN}]}>{p.initials}</Text></View>
+              <Text style={[prof.nome, sel&&{color:BG}]} numberOfLines={1}>{p.nome}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
-      {profSelecionado ? (
-        <View style={prof.resultRow}>
-          <MaterialCommunityIcons
-            name="account-check"
-            size={15}
-            color={accent}
-          />
-          <Text style={[prof.resultTexto, { color: accent }]}>
-            {" "}
-            {profSelecionado} selecionado
-          </Text>
-        </View>
-      ) : (
-        <Text style={[prof.dica, { color: GREY }]}>
-          Toque em um profissional para selecionar
-        </Text>
-      )}
+      {profSelecionado
+        ? <View style={prof.result}><MaterialCommunityIcons name="account-check" size={14} color={CYAN}/><Text style={prof.resultTexto}>  {profSelecionado}</Text></View>
+        : <Text style={prof.dica}>Escolha um profissional</Text>}
     </View>
   );
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
 export default function AgendamentoFormView() {
-  const [sessao, setSessao] = useState(null);
-  // ✅ Lista dinâmica de profissionais
-  const [profissionais, setProfissionais] = useState([]);
-  const [carregandoProfs, setCarregandoProfs] = useState(true);
-  const [clienteId, setClienteId] = useState("");
-  const [nomeServico, setNomeServico] = useState("");
+  const params = useLocalSearchParams();
+  const [sessao,          setSessao]         = useState(null);
+  const [clienteId,       setClienteId]      = useState("");
+  const [nomeServico,     setNomeServico]    = useState("");
   const [dataSelecionada, setDataSelecionada] = useState("");
   const [horaSelecionada, setHoraSelecionada] = useState("");
-  const [profSelecionado, setProfSelecionado] = useState("");
-  // ✅ Horários já ocupados para o profissional+data selecionados
-  const [horariosOcupados, setHorariosOcupados] = useState([]);
-  const [calAberto, setCalAberto] = useState(false);
-  const [horaAberta, setHoraAberta] = useState(false);
-  const [profAberto, setProfAberto] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
+  const [profSelecionado, setProfSelecionado] = useState(params?.profissionalNome || "");
+  const [profissionais,   setProfissionais]   = useState([]);
+  const [calAberto,    setCalAberto]    = useState(false);
+  const [horaAberta,   setHoraAberta]   = useState(false);
+  const [profAberto,   setProfAberto]   = useState(false);
+  const [salvando,     setSalvando]     = useState(false);
+  const [erro,         setErro]         = useState("");
+  const [sucesso,      setSucesso]      = useState(false);
 
   useEffect(() => {
     const carregar = async () => {
-      // Carrega sessão
-      const raw = await AsyncStorage.getItem(CHAVE_SESSAO);
-      if (raw) {
-        const s = JSON.parse(raw);
-        setSessao(s);
-        setClienteId(s.id || "");
-      }
-
-      // ✅ Carrega profissionais ativos do cadastros_app
+      const rawSessao = await AsyncStorage.getItem(CHAVE_SESSAO);
+      if (rawSessao) { const s=JSON.parse(rawSessao); setSessao(s); setClienteId(s.id||""); }
       const rawCad = await AsyncStorage.getItem(CHAVE_CADASTROS);
-      if (rawCad) {
-        const cadastros = JSON.parse(rawCad);
-        const lista = Object.values(cadastros).filter(
-          (c) => c.tipo === "profissional" && c.ativa !== false,
-        );
-        setProfissionais(lista);
-      }
-      setCarregandoProfs(false);
+      if (rawCad) setProfissionais(Object.values(JSON.parse(rawCad)).filter(c=>c.tipo==="profissional"&&c.ativa!==false));
     };
     carregar();
   }, []);
 
-  // ✅ Atualiza horários ocupados quando profissional ou data muda
-  useEffect(() => {
-    const buscarOcupados = async () => {
-      if (!profSelecionado || !dataSelecionada) {
-        setHorariosOcupados([]);
-        return;
-      }
-      const rawAg = await AsyncStorage.getItem(CHAVE_STORAGE);
-      if (!rawAg) {
-        setHorariosOcupados([]);
-        return;
-      }
-      const agendamentos = JSON.parse(rawAg);
-      const ocupados = agendamentos
-        .filter(
-          (a) =>
-            a.profissionalNome === profSelecionado &&
-            a.dataSelecionada === dataSelecionada,
-        )
-        .map((a) => a.horaSelecionada);
-      setHorariosOcupados(ocupados);
-      // Se horário selecionado ficou ocupado, limpa
-      if (horaSelecionada && ocupados.includes(horaSelecionada)) {
-        setHoraSelecionada("");
-      }
-    };
-    buscarOcupados();
-  }, [profSelecionado, dataSelecionada]);
-
-  const isProfissional = sessao?.tipo === "profissional";
-  const CL = isProfissional ? COR.profissional : COR.usuario;
-
   const salvar = async () => {
     setErro("");
-    if (
-      !clienteId ||
-      !nomeServico.trim() ||
-      !dataSelecionada ||
-      !horaSelecionada ||
-      !profSelecionado
-    ) {
-      setErro("Preencha todos os campos antes de salvar.");
-      return;
-    }
+    if (!clienteId||!nomeServico||!dataSelecionada||!horaSelecionada||!profSelecionado) { setErro("Preencha todos os campos."); return; }
     setSalvando(true);
     try {
-      const novoAgendamento = {
-        id: Date.now().toString(),
-        clienteId: clienteId.trim(),
-        nomeServico: nomeServico.trim(),
-        dataSelecionada,
-        horaSelecionada,
-        profissionalNome: profSelecionado,
-        status: "Confirmado",
-        dataCriacao: new Date().toISOString(),
-      };
-      const dadosSalvos = await AsyncStorage.getItem(CHAVE_STORAGE);
-      let lista = [];
-      if (dadosSalvos) {
-        try {
-          const p = JSON.parse(dadosSalvos);
-          if (Array.isArray(p)) lista = p;
-        } catch (_) {}
-      }
-      lista.push(novoAgendamento);
+      const ag = { id:Date.now().toString(), clienteId:clienteId.trim(), nomeServico:nomeServico.trim(), dataSelecionada, horaSelecionada, profissionalNome:profSelecionado, status:"Confirmado", dataCriacao:new Date().toISOString() };
+      const raw = await AsyncStorage.getItem(CHAVE_STORAGE);
+      let lista=[]; try{const p=JSON.parse(raw);if(Array.isArray(p))lista=p;}catch(_){}
+      lista.push(ag);
       await AsyncStorage.setItem(CHAVE_STORAGE, JSON.stringify(lista));
-      setSucesso(true);
-      setSalvando(false);
-      setTimeout(() => router.replace("/"), 1200);
-    } catch {
-      setSalvando(false);
-      setErro("Não foi possível salvar. Tente novamente.");
-    }
+      setSucesso(true); setSalvando(false);
+      setTimeout(()=>router.replace("/"),1200);
+    } catch { setSalvando(false); setErro("Erro ao salvar."); }
   };
 
-  if (sucesso) {
-    return (
-      <View style={[s.root, { backgroundColor: CL.bg }]}>
-        <View style={s.sucessoTela}>
-          <View style={[s.sucessoIcone, { backgroundColor: GREEN }]}>
-            <MaterialCommunityIcons name="check-bold" size={48} color={WHITE} />
-          </View>
-          <Text style={s.sucessoTitulo}>Agendamento salvo!</Text>
-          <Text style={[s.sucessoSub, { color: CL.accent }]}>
-            {dataSelecionada} às {horaSelecionada}
-          </Text>
-          <Text style={[s.sucessoProf, { color: CL.accent }]}>
-            com {profSelecionado}
-          </Text>
-          <Text style={s.sucessoSub2}>Voltando...</Text>
-        </View>
-      </View>
-    );
-  }
+  if (sucesso) return (
+    <View style={[s.root,s.centro]}>
+      <View style={s.sucessoIcone}><MaterialCommunityIcons name="check-bold" size={40} color={BG}/></View>
+      <Text style={s.sucessoTitulo}>Agendamento salvo!</Text>
+      <Text style={s.sucessoSub}>{dataSelecionada} às {horaSelecionada}</Text>
+      <Text style={{ color:CYAN, fontWeight:"700", fontSize:13 }}>com {profSelecionado}</Text>
+    </View>
+  );
 
   return (
-    <View style={[s.root, { backgroundColor: CL.bg }]}>
-      <ScrollView
-        contentContainerStyle={s.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={s.card}>
-          <View style={[s.cardTopBar, { backgroundColor: CL.accent }]} />
-          <View style={s.cardBody}>
-            <Text style={s.cardTitle}>NOVO AGENDAMENTO</Text>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
+      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Text style={s.titulo}>BOOK AN APPOINTMENT</Text>
 
-            {erro ? (
-              <View
-                style={[
-                  s.erroBox,
-                  { backgroundColor: CL.erroBg, borderColor: CL.erroBorder },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="alert-circle-outline"
-                  size={16}
-                  color={CL.accent}
-                />
-                <Text style={[s.erroTexto, { color: CL.accent }]}> {erro}</Text>
-              </View>
-            ) : null}
+        {erro ? <View style={s.erroBox}><MaterialCommunityIcons name="alert-circle-outline" size={14} color={RED}/><Text style={s.erroTexto}> {erro}</Text></View> : null}
 
-            {/* ID */}
-            <Text style={[s.label, { color: CL.accent }]}>ID DO CLIENTE</Text>
-            <View style={s.inputReadOnly}>
-              <MaterialCommunityIcons
-                name="account-circle"
-                size={18}
-                color={CL.accent}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={s.inputReadOnlyTexto}>
-                {clienteId || "Carregando…"}
-              </Text>
-              <MaterialCommunityIcons name="lock" size={14} color={GREY} />
-            </View>
+        {/* ID */}
+        <Text style={s.label}>ID DO CLIENTE</Text>
+        <View style={s.readOnly}><MaterialCommunityIcons name="account-circle" size={16} color={CYAN} style={{marginRight:8}}/><Text style={s.readOnlyTexto}>{clienteId||"..."}</Text><MaterialCommunityIcons name="lock" size={13} color={GREY}/></View>
 
-            {/* Serviço */}
-            <Text style={[s.label, { color: CL.accent }]}>NOME DO SERVIÇO</Text>
-            <TextInput
-              style={s.input}
-              placeholder="Ex: Corte + Barba"
-              placeholderTextColor={GREY}
-              value={nomeServico}
-              onChangeText={setNomeServico}
-              returnKeyType="done"
-            />
+        {/* Serviço */}
+        <Text style={s.label}>NOME DO SERVIÇO</Text>
+        <TextInput style={s.input} placeholder="Ex: Corte + Barba" placeholderTextColor={GREY} value={nomeServico} onChangeText={setNomeServico} returnKeyType="done" />
 
-            {/* ✅ Profissional dinâmico */}
-            <Text style={[s.label, { color: CL.accent }]}>PROFISSIONAL</Text>
-            <TouchableOpacity
-              style={[s.input, s.seletorBtn]}
-              onPress={() => {
-                setProfAberto((o) => !o);
-                setCalAberto(false);
-                setHoraAberta(false);
-              }}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons
-                name="account-tie"
-                size={20}
-                color={profSelecionado ? CL.accent : GREY}
-                style={{ marginRight: 10 }}
-              />
-              <Text
-                style={profSelecionado ? s.seletorTexto : s.seletorPlaceholder}
-              >
-                {profSelecionado || "Toque para escolher o profissional"}
-              </Text>
-              <MaterialCommunityIcons
-                name={profAberto ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={GREY}
-              />
-            </TouchableOpacity>
-            {profAberto && (
-              <SeletorProfissional
-                profSelecionado={profSelecionado}
-                onSelecionar={(n) => {
-                  setProfSelecionado(n);
-                  setProfAberto(false);
-                }}
-                accent={CL.accent}
-                lt={CL.lt}
-                profissionais={profissionais}
-                carregandoProfs={carregandoProfs}
-              />
-            )}
+        {/* Profissional */}
+        <Text style={s.label}>PROFISSIONAL</Text>
+        <TouchableOpacity style={[s.seletor, profAberto&&{borderColor:CYAN}]} onPress={()=>{setProfAberto(o=>!o);setCalAberto(false);setHoraAberta(false);}} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="account-tie" size={18} color={profSelecionado?CYAN:GREY} style={{marginRight:8}}/>
+          <Text style={profSelecionado?s.seletorTexto:s.seletorPlaceholder}>{profSelecionado||"Escolher profissional"}</Text>
+          <MaterialCommunityIcons name={profAberto?"chevron-up":"chevron-down"} size={18} color={GREY}/>
+        </TouchableOpacity>
+        {profAberto && <SeletorProfissional profissionais={profissionais} profSelecionado={profSelecionado} onSelecionar={n=>{setProfSelecionado(n);setProfAberto(false);}} />}
 
-            {/* Data */}
-            <Text style={[s.label, { color: CL.accent }]}>DIA DO SERVIÇO</Text>
-            <TouchableOpacity
-              style={[s.input, s.seletorBtn]}
-              onPress={() => {
-                setCalAberto((o) => !o);
-                setHoraAberta(false);
-                setProfAberto(false);
-              }}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons
-                name="calendar-month"
-                size={20}
-                color={dataSelecionada ? CL.accent : GREY}
-                style={{ marginRight: 10 }}
-              />
-              <Text
-                style={dataSelecionada ? s.seletorTexto : s.seletorPlaceholder}
-              >
-                {dataSelecionada || "Toque para escolher a data"}
-              </Text>
-              <MaterialCommunityIcons
-                name={calAberto ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={GREY}
-              />
-            </TouchableOpacity>
-            {calAberto && (
-              <Calendario
-                dataSelecionada={dataSelecionada}
-                onSelecionar={(d) => {
-                  setDataSelecionada(d);
-                  setCalAberto(false);
-                }}
-                accent={CL.accent}
-                lt={CL.lt}
-              />
-            )}
+        {/* Data */}
+        <Text style={s.label}>DATA DO SERVIÇO</Text>
+        <TouchableOpacity style={[s.seletor, calAberto&&{borderColor:CYAN}]} onPress={()=>{setCalAberto(o=>!o);setHoraAberta(false);setProfAberto(false);}} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="calendar-month" size={18} color={dataSelecionada?CYAN:GREY} style={{marginRight:8}}/>
+          <Text style={dataSelecionada?s.seletorTexto:s.seletorPlaceholder}>{dataSelecionada||"Escolher data"}</Text>
+          <MaterialCommunityIcons name={calAberto?"chevron-up":"chevron-down"} size={18} color={GREY}/>
+        </TouchableOpacity>
+        {calAberto && <Calendario dataSelecionada={dataSelecionada} onSelecionar={d=>{setDataSelecionada(d);setCalAberto(false);}} />}
 
-            {/* ✅ Horário — só disponíveis */}
-            <Text style={[s.label, { color: CL.accent }]}>HORÁRIO</Text>
-            {!profSelecionado || !dataSelecionada ? (
-              <View style={[s.input, { justifyContent: "center" }]}>
-                <Text style={{ color: GREY, fontSize: 14 }}>
-                  {!profSelecionado
-                    ? "Escolha o profissional primeiro"
-                    : "Escolha a data primeiro"}
-                </Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[s.input, s.seletorBtn]}
-                onPress={() => {
-                  setHoraAberta((o) => !o);
-                  setCalAberto(false);
-                  setProfAberto(false);
-                }}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name="clock-outline"
-                  size={20}
-                  color={horaSelecionada ? CL.accent : GREY}
-                  style={{ marginRight: 10 }}
-                />
-                <Text
-                  style={
-                    horaSelecionada ? s.seletorTexto : s.seletorPlaceholder
-                  }
-                >
-                  {horaSelecionada || "Toque para escolher o horário"}
-                </Text>
-                <MaterialCommunityIcons
-                  name={horaAberta ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={GREY}
-                />
-              </TouchableOpacity>
-            )}
-            {horaAberta && profSelecionado && dataSelecionada && (
-              <SeletorHora
-                horaSelecionada={horaSelecionada}
-                onSelecionar={(h) => {
-                  setHoraSelecionada(h);
-                  setHoraAberta(false);
-                }}
-                accent={CL.accent}
-                lt={CL.lt}
-                horariosOcupados={horariosOcupados}
-              />
-            )}
+        {/* Horário */}
+        <Text style={s.label}>HORÁRIO</Text>
+        <TouchableOpacity style={[s.seletor, horaAberta&&{borderColor:CYAN}]} onPress={()=>{setHoraAberta(o=>!o);setCalAberto(false);setProfAberto(false);}} activeOpacity={0.8}>
+          <MaterialCommunityIcons name="clock-outline" size={18} color={horaSelecionada?CYAN:GREY} style={{marginRight:8}}/>
+          <Text style={horaSelecionada?s.seletorTexto:s.seletorPlaceholder}>{horaSelecionada||"Escolher horário"}</Text>
+          <MaterialCommunityIcons name={horaAberta?"chevron-up":"chevron-down"} size={18} color={GREY}/>
+        </TouchableOpacity>
+        {horaAberta && <SeletorHora horaSelecionada={horaSelecionada} onSelecionar={h=>{setHoraSelecionada(h);setHoraAberta(false);}} />}
 
-            {/* Botão salvar */}
-            <TouchableOpacity
-              style={[
-                s.botao,
-                { backgroundColor: CL.accent, shadowColor: CL.accent },
-                salvando && s.botaoDesativado,
-              ]}
-              onPress={salvar}
-              disabled={salvando}
-              activeOpacity={0.85}
-            >
-              {salvando ? (
-                <ActivityIndicator size="small" color={WHITE} />
-              ) : (
-                <View style={s.botaoConteudo}>
-                  <Text style={s.botaoTexto}>SALVAR AGENDAMENTO</Text>
-                  <MaterialCommunityIcons
-                    name="content-save"
-                    size={20}
-                    color={WHITE}
-                    style={{ marginLeft: 10 }}
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Resumo */}
-        {nomeServico ||
-        dataSelecionada ||
-        horaSelecionada ||
-        profSelecionado ? (
-          <View style={s.resumo}>
-            {nomeServico ? (
-              <View style={s.resumoLinha}>
-                <MaterialCommunityIcons
-                  name="content-cut"
-                  size={16}
-                  color={CL.accent}
-                />
-                <Text style={s.resumoLabel}> SERVIÇO: </Text>
-                <Text style={s.resumoValor}>{nomeServico.toUpperCase()}</Text>
-              </View>
-            ) : null}
-            {profSelecionado ? (
-              <View style={s.resumoLinha}>
-                <MaterialCommunityIcons
-                  name="account-tie"
-                  size={16}
-                  color={CL.accent}
-                />
-                <Text style={s.resumoLabel}> PROFISSIONAL: </Text>
-                <Text style={s.resumoValor}>
-                  {profSelecionado.toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
-            {dataSelecionada && horaSelecionada ? (
-              <View style={[s.resumoLinha, { borderBottomWidth: 0 }]}>
-                <MaterialCommunityIcons
-                  name="calendar-clock"
-                  size={16}
-                  color={CL.accent}
-                />
-                <Text style={s.resumoLabel}> DATA/HORA: </Text>
-                <Text style={s.resumoValor}>
-                  {dataSelecionada} às {horaSelecionada}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
+        {/* Botão */}
+        <TouchableOpacity style={[s.botao, salvando&&s.botaoOff]} onPress={salvar} disabled={salvando} activeOpacity={0.85}>
+          {salvando ? <ActivityIndicator size="small" color={BG}/> : <View style={s.botaoRow}><Text style={s.botaoTexto}>CONTINUE</Text><MaterialCommunityIcons name="arrow-right" size={18} color={BG} style={{marginLeft:8}}/></View>}
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
 const cal = StyleSheet.create({
-  container: { borderRadius: 14, padding: 16, marginTop: 4, marginBottom: 18 },
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  navBtn: { padding: 6, borderRadius: 20, backgroundColor: WHITE },
-  mesAno: { fontSize: 15, fontWeight: "800", letterSpacing: 0.5 },
-  semanaRow: { flexDirection: "row", marginBottom: 6 },
-  semanaLabel: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  grid: { flexDirection: "row", flexWrap: "wrap" },
-  diaBtn: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 100,
-    marginVertical: 2,
-  },
-  diaTexto: { fontSize: 13, fontWeight: "600", color: DARK },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
-  resultTexto: { fontSize: 14, fontWeight: "700" },
-  dica: {
-    textAlign: "center",
-    marginTop: 10,
-    paddingTop: 10,
-    fontSize: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
+  wrap: { backgroundColor:CARD2, borderRadius:14, padding:14, marginBottom:16, borderWidth:1, borderColor:BORDER },
+  nav:  { flexDirection:"row", justifyContent:"space-between", alignItems:"center", marginBottom:10 },
+  navBtn: { padding:4 },
+  mesAno: { fontSize:14, fontWeight:"800", color:WHITE },
+  semRow: { flexDirection:"row", marginBottom:6 },
+  semLabel:{ flex:1, textAlign:"center", fontSize:11, fontWeight:"700", color:GREY },
+  grid: { flexDirection:"row", flexWrap:"wrap" },
+  dia:  { width:`${100/7}%`, aspectRatio:1, alignItems:"center", justifyContent:"center", borderRadius:100, marginVertical:2 },
+  diaTexto: { fontSize:13, fontWeight:"600", color:WHITE },
+  result:   { flexDirection:"row", alignItems:"center", justifyContent:"center", marginTop:10, paddingTop:8, borderTopWidth:1, borderTopColor:BORDER },
+  resultTexto: { fontSize:13, fontWeight:"700", color:CYAN },
+  dica: { textAlign:"center", marginTop:8, paddingTop:8, fontSize:12, color:GREY, borderTopWidth:1, borderTopColor:BORDER },
 });
-
 const hor = StyleSheet.create({
-  container: { borderRadius: 14, padding: 16, marginTop: 4, marginBottom: 18 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    width: "22%",
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-    backgroundColor: WHITE,
-    borderWidth: 1.5,
-    borderColor: "#DDD",
-    position: "relative",
-  },
-  chipTexto: { fontSize: 13, fontWeight: "700", color: DARK },
-  ocup: {
-    position: "absolute",
-    top: 2,
-    right: 4,
-    fontSize: 12,
-    color: "#CCC",
-    fontWeight: "900",
-  },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
-  resultTexto: { fontSize: 14, fontWeight: "700" },
-  dica: {
-    textAlign: "center",
-    marginTop: 12,
-    paddingTop: 10,
-    fontSize: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
-  legenda: { textAlign: "center", marginTop: 8, fontSize: 11 },
+  wrap: { backgroundColor:CARD2, borderRadius:14, padding:14, marginBottom:16, borderWidth:1, borderColor:BORDER },
+  grid: { flexDirection:"row", flexWrap:"wrap", gap:6 },
+  chip: { width:"22%", paddingVertical:9, alignItems:"center", borderRadius:8, backgroundColor:CARD, borderWidth:1, borderColor:BORDER },
+  texto:{ fontSize:12, fontWeight:"700", color:WHITE },
+  result:   { flexDirection:"row", alignItems:"center", justifyContent:"center", marginTop:10, paddingTop:8, borderTopWidth:1, borderTopColor:BORDER },
+  resultTexto: { fontSize:13, fontWeight:"700", color:CYAN },
+  dica: { textAlign:"center", marginTop:8, paddingTop:8, fontSize:12, color:GREY, borderTopWidth:1, borderTopColor:BORDER },
 });
-
 const prof = StyleSheet.create({
-  container: { borderRadius: 14, padding: 16, marginTop: 4, marginBottom: 18 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: WHITE,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: "#DDD",
-    minWidth: "45%",
-  },
-  circulo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#EEE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iniciais: { fontSize: 14, fontWeight: "900", color: DARK },
-  nome: { flex: 1, fontSize: 14, fontWeight: "700", color: DARK },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
-  resultTexto: { fontSize: 14, fontWeight: "700" },
-  dica: {
-    textAlign: "center",
-    marginTop: 10,
-    paddingTop: 10,
-    fontSize: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#DDD",
-  },
+  wrap: { backgroundColor:CARD2, borderRadius:14, padding:14, marginBottom:16, borderWidth:1, borderColor:BORDER },
+  grid: { flexDirection:"row", flexWrap:"wrap", gap:8 },
+  card: { flexDirection:"row", alignItems:"center", gap:8, backgroundColor:CARD, borderRadius:10, paddingVertical:10, paddingHorizontal:12, borderWidth:1, borderColor:BORDER, minWidth:"45%" },
+  circulo: { width:34, height:34, borderRadius:17, backgroundColor:CARD2, alignItems:"center", justifyContent:"center", borderWidth:1, borderColor:BORDER },
+  iniciais:{ fontSize:12, fontWeight:"800", color:CYAN },
+  nome:    { flex:1, fontSize:12, fontWeight:"700", color:WHITE },
+  result:   { flexDirection:"row", alignItems:"center", justifyContent:"center", marginTop:10, paddingTop:8, borderTopWidth:1, borderTopColor:BORDER },
+  resultTexto: { fontSize:13, fontWeight:"700", color:CYAN },
+  dica: { textAlign:"center", marginTop:8, paddingTop:8, fontSize:12, color:GREY, borderTopWidth:1, borderTopColor:BORDER },
 });
-
 const s = StyleSheet.create({
-  root: { flex: 1 },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 },
-  sucessoTela: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 14,
-    padding: 32,
-  },
-  sucessoIcone: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sucessoTitulo: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: DARK,
-    letterSpacing: 1,
-  },
-  sucessoSub: { fontSize: 16, fontWeight: "700" },
-  sucessoProf: { fontSize: 14, fontWeight: "600", color: DARK },
-  sucessoSub2: { fontSize: 13, color: GREY, marginTop: 4 },
-  card: {
-    backgroundColor: WHITE,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    marginBottom: 16,
-  },
-  cardTopBar: { height: 6 },
-  cardBody: { padding: 24 },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: DARK,
-    textAlign: "center",
-    letterSpacing: 1.5,
-    marginBottom: 24,
-  },
-  erroBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-  },
-  erroTexto: { fontSize: 13, fontWeight: "600", flex: 1 },
-  label: { fontSize: 11, fontWeight: "800", letterSpacing: 1, marginBottom: 6 },
-  inputReadOnly: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    height: 48,
-    paddingHorizontal: 14,
-    backgroundColor: "#F5F5F5",
-    marginBottom: 18,
-  },
-  inputReadOnlyTexto: { flex: 1, fontSize: 15, color: DARK, fontWeight: "700" },
-  input: {
-    borderWidth: 1.5,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    height: 48,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: DARK,
-    backgroundColor: WHITE,
-    marginBottom: 18,
-  },
-  seletorBtn: { flexDirection: "row", alignItems: "center" },
-  seletorTexto: { flex: 1, fontSize: 15, color: DARK, fontWeight: "600" },
-  seletorPlaceholder: { flex: 1, fontSize: 15, color: GREY },
-  botao: {
-    borderRadius: 8,
-    height: 52,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  botaoDesativado: { backgroundColor: GREY, shadowOpacity: 0, elevation: 0 },
-  botaoConteudo: { flexDirection: "row", alignItems: "center" },
-  botaoTexto: {
-    color: WHITE,
-    fontSize: 15,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-  },
-  resumo: {
-    backgroundColor: WHITE,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  resumoLinha: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  resumoLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: GREY,
-    letterSpacing: 0.8,
-  },
-  resumoValor: { fontSize: 13, fontWeight: "600", color: DARK, flex: 1 },
+  root:  { flex:1, backgroundColor:BG },
+  scroll:{ paddingHorizontal:20, paddingTop:12, paddingBottom:48, gap:10 },
+  centro:{ justifyContent:"center", alignItems:"center", gap:14, padding:32 },
+  titulo:{ fontSize:18, fontWeight:"900", color:CYAN, letterSpacing:2, textAlign:"center", marginBottom:4 },
+  erroBox:  { flexDirection:"row", alignItems:"center", backgroundColor:"rgba(229,57,53,0.12)", borderWidth:1, borderColor:RED, borderRadius:8, padding:10 },
+  erroTexto:{ fontSize:12, color:RED, fontWeight:"600", flex:1 },
+  label:    { fontSize:10, fontWeight:"800", color:CYAN, letterSpacing:1.5 },
+  input:    { backgroundColor:CARD2, borderWidth:1, borderColor:BORDER, borderRadius:10, height:48, paddingHorizontal:14, fontSize:14, color:WHITE },
+  readOnly: { flexDirection:"row", alignItems:"center", backgroundColor:CARD2, borderWidth:1, borderColor:BORDER, borderRadius:10, height:48, paddingHorizontal:14 },
+  readOnlyTexto: { flex:1, fontSize:14, color:WHITE, fontWeight:"700" },
+  seletor:  { flexDirection:"row", alignItems:"center", backgroundColor:CARD2, borderWidth:1, borderColor:BORDER, borderRadius:10, height:48, paddingHorizontal:14 },
+  seletorTexto:{ flex:1, fontSize:14, color:WHITE, fontWeight:"600" },
+  seletorPlaceholder:{ flex:1, fontSize:14, color:GREY },
+  botao:    { backgroundColor:CYAN, borderRadius:10, height:52, justifyContent:"center", alignItems:"center", shadowColor:CYAN, shadowOpacity:0.4, shadowRadius:8, elevation:5, marginTop:8 },
+  botaoOff: { backgroundColor:GREY, shadowOpacity:0, elevation:0 },
+  botaoRow: { flexDirection:"row", alignItems:"center" },
+  botaoTexto:{ color:BG, fontSize:15, fontWeight:"900", letterSpacing:1.5 },
+  sucessoIcone:  { width:72, height:72, borderRadius:36, backgroundColor:CYAN, alignItems:"center", justifyContent:"center" },
+  sucessoTitulo: { fontSize:22, fontWeight:"900", color:WHITE },
+  sucessoSub:    { fontSize:15, fontWeight:"700", color:GREY },
 });

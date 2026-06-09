@@ -6,9 +6,12 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AvatarIcon from "./AvatarIcon";
 
-const RED  = "#8B1A1A";
-const BLUE = "#1A4A8A";
-const WHITE = "#FFFFFF";
+const BG     = "#0F1123";
+const CARD   = "#1A1F3A";
+const CYAN   = "#00C8DC";
+const WHITE  = "#FFFFFF";
+const GREY   = "#8892B0";
+const BORDER = "#2D3461";
 
 const chavePerfil = (id) => `perfil_${id}`;
 
@@ -23,7 +26,6 @@ export default function TopClientesAppbar() {
       if (!raw) return;
       const s = JSON.parse(raw);
       setSessao(s);
-
       if (s?.id) {
         const rawPerfil = await AsyncStorage.getItem(chavePerfil(s.id));
         if (rawPerfil) setGenero(JSON.parse(rawPerfil).genero ?? null);
@@ -32,11 +34,8 @@ export default function TopClientesAppbar() {
     load();
   }, []);
 
-  const isProfissional = sessao?.tipo === "profissional";
-  const ACCENT = isProfissional ? BLUE : RED;
-
   const getTitle = () => {
-    if (pathname.includes("AgendamentoListView"))     return isProfissional ? "Meus Agendamentos" : "Minha Agenda";
+    if (pathname.includes("AgendamentoListView"))     return sessao?.tipo === "profissional" ? "Meus Agendamentos" : "Minha Agenda";
     if (pathname.includes("AgendamentoFormView"))     return "Agendar";
     if (pathname.includes("ContatoListView"))         return "Clientes";
     if (pathname.includes("ContatoFormView"))         return "Cadastro";
@@ -46,15 +45,13 @@ export default function TopClientesAppbar() {
   };
 
   return (
-    <View style={[s.header, { borderBottomColor: isProfissional ? "#D0E4F7" : "#F0E8E8" }]}>
-      <TouchableOpacity onPress={() => router.back()} hitSlop={14} activeOpacity={0.6}>
-        <Text style={[s.arrow, { color: ACCENT }]}>←</Text>
+    <View style={s.header}>
+      <TouchableOpacity onPress={() => router.back()} hitSlop={14} activeOpacity={0.6} style={s.backBtn}>
+        <MaterialCommunityIcons name="arrow-left" size={22} color={CYAN} />
       </TouchableOpacity>
-
-      <Text style={[s.title, { color: ACCENT }]}>{getTitle()}</Text>
-
-      <View style={[s.avatarWrap, { borderColor: ACCENT }]}>
-        <AvatarIcon genero={genero} size={42} bgColor={ACCENT} iconColor={WHITE} />
+      <Text style={s.title}>{getTitle()}</Text>
+      <View style={s.avatarWrap}>
+        <AvatarIcon genero={genero} size={38} bgColor={CYAN} iconColor={BG} />
       </View>
     </View>
   );
@@ -62,15 +59,16 @@ export default function TopClientesAppbar() {
 
 const s = StyleSheet.create({
   header: {
-    height: 62,
+    height: 64,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: WHITE,
-    paddingHorizontal: 22,
+    backgroundColor: CARD,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
-  arrow:      { fontSize: 26, fontWeight: "700" },
-  title:      { fontSize: 16, fontWeight: "700", fontStyle: "italic", flex: 1, textAlign: "center" },
-  avatarWrap: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", borderWidth: 2 },
+  backBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: "#232845", alignItems: "center", justifyContent: "center" },
+  title:      { fontSize: 15, fontWeight: "800", color: CYAN, flex: 1, textAlign: "center", letterSpacing: 1.5 },
+  avatarWrap: { width: 38, height: 38, borderRadius: 19, overflow: "hidden", borderWidth: 1.5, borderColor: CYAN },
 });

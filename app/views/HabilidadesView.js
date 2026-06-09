@@ -1,225 +1,143 @@
 // app/views/HabilidadesView.js
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-// ── Paleta azul ───────────────────────────────────────────────────────────────
-const BLUE    = "#1A4A8A";
-const BLUE2   = "#2563B0";
-const BLUE_LT = "#EBF2FC";   // fundo dos ícones e chips
-const WHITE   = "#FFFFFF";
-const DARK    = "#0A1628";
-const GREY    = "#7A8FA6";
-const GREEN   = "#2E7D32";
-const BG      = "#F0F5FA";
-
-const CHAVE_SESSAO = "sessao_barbearia";
-
-const TODAS_HABILIDADES = [
-  { id: "barba",       label: "Corte de Barba",         icon: "face-man"     },
-  { id: "cabelo",      label: "Corte de Cabelo",        icon: "content-cut"  },
-  { id: "massagem",    label: "Massagem Facial",         icon: "hand-heart"   },
-  { id: "sobrancelha", label: "Desenho de Sobrancelha", icon: "eye"          },
-  { id: "capilar",     label: "Tratamento Capilar",     icon: "bottle-tonic" },
-];
+const BG     = "#0F1123";
+const CARD   = "#1A1F3A";
+const CARD2  = "#232845";
+const CYAN   = "#00C8DC";
+const RED    = "#E53935";
+const WHITE  = "#FFFFFF";
+const GREY   = "#8892B0";
+const BORDER = "#2D3461";
 
 export default function HabilidadesView() {
-  const [sessao,       setSessao]       = useState(null);
-  const [selecionadas, setSelecionadas] = useState([]);
-  const [salvando,     setSalvando]     = useState(false);
-  const [salvo,        setSalvo]        = useState(false);
-  const [erro,         setErro]         = useState("");
+  const [habilidades, setHabilidades] = useState([]);
+  const [novaHab,     setNovaHab]     = useState("");
+  const [sessaoId,    setSessaoId]    = useState(null);
+  const [removendoIdx,setRemovendoIdx]= useState(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const carregar = async () => {
-      const raw = await AsyncStorage.getItem(CHAVE_SESSAO);
-      if (!raw) { router.replace("/views/LoginView"); return; }
-      const s = JSON.parse(raw);
-      setSessao(s);
-
-      const chaveNome = `habilidades_perfil_${s.nome}`;
-      const hab = await AsyncStorage.getItem(chaveNome);
-      if (hab) setSelecionadas(JSON.parse(hab));
+      const rawSessao = await AsyncStorage.getItem("sessao_barbearia");
+      if (!rawSessao) return;
+      const s = JSON.parse(rawSessao);
+      setSessaoId(s.id);
+      const rawHab = await AsyncStorage.getItem(`habilidades_${s.id}`);
+      if (rawHab) setHabilidades(JSON.parse(rawHab));
     };
     carregar();
-  }, []);
+  }, []));
 
-  const toggle = (label) => {
-    setErro("");
-    setSelecionadas((prev) => {
-      if (prev.includes(label)) return prev.filter((h) => h !== label);
-      if (prev.length >= 3) {
-        setErro("Você pode selecionar no máximo 3 habilidades.");
-        return prev;
-      }
-      return [...prev, label];
-    });
+  const salvar = async (lista) => {
+    if (!sessaoId) return;
+    await AsyncStorage.setItem(`habilidades_${sessaoId}`, JSON.stringify(lista));
   };
 
-  const salvar = async () => {
-    if (selecionadas.length === 0) {
-      setErro("Selecione ao menos uma habilidade.");
-      return;
-    }
-    setSalvando(true);
-    try {
-      const chaveNome = `habilidades_perfil_${sessao.nome}`;
-      const chaveId   = `habilidades_${sessao.id}`;
-      await AsyncStorage.setItem(chaveNome, JSON.stringify(selecionadas));
-      await AsyncStorage.setItem(chaveId,   JSON.stringify(selecionadas));
-
-      setSalvo(true);
-      setSalvando(false);
-      setTimeout(() => router.replace("/views/HomeProfissionalView"), 1400);
-    } catch {
-      setSalvando(false);
-      setErro("Erro ao salvar. Tente novamente.");
-    }
+  const adicionar = async () => {
+    const h = novaHab.trim();
+    if (!h || habilidades.includes(h)) { setNovaHab(""); return; }
+    const nova = [...habilidades, h];
+    setHabilidades(nova);
+    setNovaHab("");
+    await salvar(nova);
   };
 
-  // ── Tela de sucesso ───────────────────────────────────────────────────────
-  if (salvo) {
-    return (
-      <View style={s.root}>
-        <View style={s.sucessoTela}>
-          <View style={s.sucessoIcone}>
-            <MaterialCommunityIcons name="check-bold" size={48} color={WHITE} />
-          </View>
-          <Text style={s.sucessoTitulo}>Habilidades salvas!</Text>
-          <Text style={s.sucessoSub}>Voltando para a home…</Text>
-        </View>
-      </View>
-    );
-  }
+  const remover = async (idx) => {
+    const nova = habilidades.filter((_, i) => i !== idx);
+    setHabilidades(nova);
+    setRemovendoIdx(null);
+    await salvar(nova);
+  };
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={WHITE} />
-
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={s.card}>
-          {/* Barra azul no topo do card */}
-          <View style={s.cardBarra} />
-          <View style={s.cardBody}>
+        <Text style={s.titulo}>MINHAS HABILIDADES</Text>
+        <Text style={s.sub}>Adicione os serviços que você realiza</Text>
 
-            <Text style={s.titulo}>MINHAS HABILIDADES</Text>
-            <Text style={s.subtitulo}>Selecione até 3 especialidades</Text>
-
-            {/* Contador */}
-            <View style={s.contadorRow}>
-              <Text style={s.contadorTexto}>{selecionadas.length}/3 selecionadas</Text>
-            </View>
-
-            {/* Erro inline */}
-            {erro ? (
-              <View style={s.erroBox}>
-                <MaterialCommunityIcons name="alert-circle-outline" size={15} color={BLUE} />
-                <Text style={s.erroTexto}> {erro}</Text>
-              </View>
-            ) : null}
-
-            {/* Lista de habilidades */}
-            {TODAS_HABILIDADES.map((h) => {
-              const sel = selecionadas.includes(h.label);
-              return (
-                <TouchableOpacity
-                  key={h.id}
-                  style={[s.habItem, sel && s.habItemSel]}
-                  onPress={() => toggle(h.label)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[s.habIcone, sel && s.habIconeSel]}>
-                    <MaterialCommunityIcons
-                      name={h.icon}
-                      size={24}
-                      color={sel ? WHITE : BLUE}
-                    />
-                  </View>
-                  <Text style={[s.habLabel, sel && s.habLabelSel]}>{h.label}</Text>
-                  <MaterialCommunityIcons
-                    name={sel ? "check-circle" : "circle-outline"}
-                    size={24}
-                    color={sel ? WHITE : GREY}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Botão Salvar */}
-            <TouchableOpacity
-              style={[s.botao, salvando && s.botaoDesativado]}
-              onPress={salvar}
-              disabled={salvando}
-              activeOpacity={0.85}
-            >
-              {salvando ? (
-                <ActivityIndicator size="small" color={WHITE} />
-              ) : (
-                <View style={s.botaoConteudo}>
-                  <Text style={s.botaoTexto}>SALVAR HABILIDADES</Text>
-                  <MaterialCommunityIcons
-                    name="content-save"
-                    size={20}
-                    color={WHITE}
-                    style={{ marginLeft: 10 }}
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
-
-          </View>
+        {/* Input */}
+        <View style={s.addRow}>
+          <TextInput
+            style={s.input}
+            placeholder="Ex: Corte degradê"
+            placeholderTextColor={GREY}
+            value={novaHab}
+            onChangeText={setNovaHab}
+            onSubmitEditing={adicionar}
+            returnKeyType="done"
+          />
+          <TouchableOpacity style={s.addBtn} onPress={adicionar} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="plus" size={24} color={BG} />
+          </TouchableOpacity>
         </View>
+
+        {/* Lista */}
+        {habilidades.length === 0 ? (
+          <View style={s.vazio}>
+            <MaterialCommunityIcons name="star-outline" size={52} color={BORDER} />
+            <Text style={s.vazioTexto}>Nenhuma habilidade cadastrada ainda</Text>
+            <Text style={s.vazioSub}>Adicione seus serviços acima</Text>
+          </View>
+        ) : (
+          <View style={s.lista}>
+            {habilidades.map((h, idx) => (
+              <View key={idx} style={s.habItem}>
+                <View style={s.habIcone}>
+                  <MaterialCommunityIcons name="check" size={16} color={CYAN} />
+                </View>
+                <Text style={s.habTexto} numberOfLines={1}>{h}</Text>
+                {removendoIdx === idx ? (
+                  <View style={s.confirmRow}>
+                    <TouchableOpacity style={s.confirmSim} onPress={() => remover(idx)} activeOpacity={0.8}>
+                      <MaterialCommunityIcons name="check" size={14} color={BG} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.confirmNao} onPress={() => setRemovendoIdx(null)} activeOpacity={0.8}>
+                      <MaterialCommunityIcons name="close" size={14} color={GREY} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={() => setRemovendoIdx(idx)} hitSlop={10} activeOpacity={0.6}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={GREY} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {habilidades.length > 0 && (
+          <View style={s.total}>
+            <MaterialCommunityIcons name="star-circle" size={16} color={CYAN} />
+            <Text style={s.totalTexto}>  {habilidades.length} habilidade{habilidades.length > 1 ? "s" : ""} cadastrada{habilidades.length > 1 ? "s" : ""}</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48 },
-
-  // Sucesso
-  sucessoTela:   { flex: 1, justifyContent: "center", alignItems: "center", gap: 14, padding: 32 },
-  sucessoIcone:  { width: 90, height: 90, borderRadius: 45, backgroundColor: GREEN, justifyContent: "center", alignItems: "center" },
-  sucessoTitulo: { fontSize: 24, fontWeight: "900", color: DARK },
-  sucessoSub:    { fontSize: 13, color: GREY },
-
-  // Card
-  card:      { backgroundColor: WHITE, borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  cardBarra: { height: 6, backgroundColor: BLUE },
-  cardBody:  { padding: 24, gap: 12 },
-
-  titulo:    { fontSize: 20, fontWeight: "900", color: DARK, textAlign: "center", letterSpacing: 1.5 },
-  subtitulo: { fontSize: 13, color: GREY, textAlign: "center", marginTop: -4 },
-
-  contadorRow:   { alignItems: "flex-end" },
-  contadorTexto: { fontSize: 12, fontWeight: "700", color: BLUE },
-
-  // Erro
-  erroBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#EBF2FC", borderWidth: 1, borderColor: "#A8C4E8", borderRadius: 8, padding: 10 },
-  erroTexto: { fontSize: 13, color: BLUE, fontWeight: "600", flex: 1 },
-
-  // Itens de habilidade
-  habItem:    { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 12, backgroundColor: "#F8FAFE", borderWidth: 1.5, borderColor: "#DDE8F5" },
-  habItemSel: { backgroundColor: BLUE, borderColor: BLUE },
-  habIcone:   { width: 44, height: 44, borderRadius: 22, backgroundColor: BLUE_LT, alignItems: "center", justifyContent: "center" },
-  habIconeSel:{ backgroundColor: "rgba(255,255,255,0.2)" },
-  habLabel:   { flex: 1, fontSize: 15, fontWeight: "700", color: DARK },
-  habLabelSel:{ color: WHITE },
-
-  // Botão
-  botao:          { backgroundColor: BLUE, borderRadius: 8, height: 52, justifyContent: "center", alignItems: "center", marginTop: 8, shadowColor: BLUE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 5 },
-  botaoDesativado:{ backgroundColor: GREY, shadowOpacity: 0, elevation: 0 },
-  botaoConteudo:  { flexDirection: "row", alignItems: "center" },
-  botaoTexto:     { color: WHITE, fontSize: 15, fontWeight: "900", letterSpacing: 1.2 },
+  root:  { flex: 1, backgroundColor: BG },
+  scroll:{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48, gap: 16 },
+  titulo:{ fontSize: 18, fontWeight: "900", color: CYAN, letterSpacing: 2, textAlign: "center" },
+  sub:   { fontSize: 12, color: GREY, textAlign: "center", marginTop: -8 },
+  addRow:{ flexDirection: "row", gap: 10 },
+  input: { flex: 1, backgroundColor: CARD2, borderWidth: 1, borderColor: BORDER, borderRadius: 10, height: 50, paddingHorizontal: 14, fontSize: 14, color: WHITE },
+  addBtn:{ width: 50, height: 50, borderRadius: 10, backgroundColor: CYAN, alignItems: "center", justifyContent: "center", shadowColor: CYAN, shadowOpacity: 0.4, shadowRadius: 6, elevation: 5 },
+  vazio: { alignItems: "center", gap: 8, paddingVertical: 40 },
+  vazioTexto: { fontSize: 15, fontWeight: "700", color: GREY, textAlign: "center" },
+  vazioSub:   { fontSize: 12, color: BORDER, textAlign: "center" },
+  lista: { gap: 8 },
+  habItem: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: CARD, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: BORDER },
+  habIcone:{ width: 30, height: 30, borderRadius: 15, backgroundColor: "rgba(0,200,220,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: CYAN },
+  habTexto:{ flex: 1, fontSize: 14, fontWeight: "600", color: WHITE },
+  confirmRow:{ flexDirection: "row", gap: 6 },
+  confirmSim:{ width: 28, height: 28, borderRadius: 8, backgroundColor: RED, alignItems: "center", justifyContent: "center" },
+  confirmNao:{ width: 28, height: 28, borderRadius: 8, backgroundColor: CARD2, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: BORDER },
+  total: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8 },
+  totalTexto: { fontSize: 13, fontWeight: "700", color: GREY },
 });
