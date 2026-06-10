@@ -257,7 +257,7 @@ Antes de executar o projeto, instale:
 ### 1. Clone o repositório
 
 ```bash
-git clone (https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05)
+git clone [https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05](https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05)
 cd AppBarbearia
 ```
 
