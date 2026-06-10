@@ -42,7 +42,7 @@ async function idJaExiste(id) {
   const c = raw ? JSON.parse(raw) : {};
   return !!c[id.toUpperCase()];
 }
-async function profesionalJaCadastrado(nome) {
+async function profissionalJaCadastrado(nome) {
   const raw = await AsyncStorage.getItem(CHAVE_CADASTROS);
   const c = raw ? JSON.parse(raw) : {};
   return Object.values(c).some(

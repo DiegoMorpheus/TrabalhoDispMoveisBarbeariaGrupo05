@@ -155,7 +155,7 @@ export default function AgendamentoFormView() {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={BG} />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={s.titulo}>BOOK AN APPOINTMENT</Text>
+        <Text style={s.titulo}>Faça seu agendamento</Text>
 
         {erro ? <View style={s.erroBox}><MaterialCommunityIcons name="alert-circle-outline" size={14} color={RED}/><Text style={s.erroTexto}> {erro}</Text></View> : null}
 
