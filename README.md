@@ -378,4 +378,4 @@ AppBarbearia/
 |Lucas De Jesus Alves|[@lucas-alves28](https://github.com/lucasdejesusalves28-cloud)|desenvolvedor|
 
 **Disciplina:** Programação para Dispositivos Móveis — 2026.1  
-**Repositório:** [github.com/DiegoMorpheus/AppBarbearia](https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05)
+**Repositório:** [https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05](https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05)
