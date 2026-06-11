@@ -375,7 +375,9 @@ AppBarbearia/
 | Diego | [@DiegoMorpheus](https://github.com/DiegoMorpheus) | Desenvolvedor / Responsável pelo repositório |
 | Phillip | [@PhillipTI](https://github.com/PhillipTI) | Desenvolvedor |
 | Eduarda | [@EduardaSSN](https://github.com/EduardaSSN) | Desenvolvedora |
-|Lucas De Jesus Alves|[@lucas-alves28](https://github.com/lucasdejesusalves28-cloud)|desenvolvedor|
+| Lucas De Jesus Alves|[@lucas-alves28](https://github.com/lucasdejesusalves28-cloud)| Desenvolvedor |
+| Guilherme | [@GuiMAlves](https://github.com/GuiMAlves) | Desenvolvedor |
+| Victor | [@victor-andrey](https://github.com/victor-andrey) | Desenvolvedor |
 
 **Disciplina:** Programação para Dispositivos Móveis — 2026.1  
 **Repositório:** [https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05](https://github.com/DiegoMorpheus/TrabalhoDispMoveisBarbeariaGrupo05)
